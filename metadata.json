@@ -1,0 +1,6 @@
+{
+  "name": "TuneCraft Music Player",
+  "description": "Professional offline Android music player with Media3 ExoPlayer, 10-band equalizer, real-time FFT visualizer, lyrics, local backup, smart playlists, statistics, Glance widgets, and Material You design.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

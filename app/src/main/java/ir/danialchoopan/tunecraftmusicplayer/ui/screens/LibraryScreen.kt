@@ -3,34 +3,61 @@ package ir.danialchoopan.tunecraftmusicplayer.ui.screens
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Folder
-import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import ir.danialchoopan.tunecraftmusicplayer.data.local.entity.SongEntity
-
-import androidx.compose.material.icons.filled.FolderSpecial
-import androidx.compose.material.icons.filled.LibraryMusic
-import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import ir.danialchoopan.tunecraftmusicplayer.data.local.entity.PlaylistEntity
+import ir.danialchoopan.tunecraftmusicplayer.data.local.entity.SongEntity
+import ir.danialchoopan.tunecraftmusicplayer.ui.components.AddToPlaylistDialog
 
+enum class SongSortOption(val titleEn: String, val titleFa: String) {
+    TITLE_ASC("Title (A-Z)", "الفبایی (الف تا ی)"),
+    TITLE_DESC("Title (Z-A)", "الفبایی (ی تا الف)"),
+    ARTIST("Artist (A-Z)", "بر اساس خواننده"),
+    NEWEST("Recently Added", "جدیدترین‌ها"),
+    DURATION_DESC("Longest First", "طولانی‌ترین‌ها"),
+    DURATION_ASC("Shortest First", "کوتاه‌ترین‌ها")
+}
+
+enum class SongFilterChip(val titleEn: String, val titleFa: String) {
+    ALL("All Tracks", "همه آهنگ‌ها"),
+    FAVORITES("Favorites", "علاقه‌مندی‌ها"),
+    HIGH_QUALITY("320+ kbps", "کیفیت بالا (۳۲۰)"),
+    SHORT("Short (<3m)", "کوتاه (<۳ دقیقه)"),
+    LONG("Long (>5m)", "طولانی (>۵ دقیقه)")
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LibraryScreen(
     allSongs: List<SongEntity>,
+    playlists: List<PlaylistEntity> = emptyList(),
     isPersian: Boolean = false,
     hasAudioPermission: Boolean = true,
     onRequestPermission: () -> Unit = {},
     onSongClick: (List<SongEntity>, Int) -> Unit,
-    onRescanMedia: () -> Unit
+    onRescanMedia: () -> Unit,
+    onAddToPlaylist: ((Long, Long) -> Unit)? = null,
+    onCreatePlaylistAndAdd: ((String, Long) -> Unit)? = null,
+    onToggleFavorite: ((SongEntity) -> Unit)? = null
 ) {
     var selectedTab by remember { mutableStateOf(0) } // 0: Songs, 1: Albums, 2: Artists, 3: Genres, 4: Folders, 5: Years
+    var searchQuery by remember { mutableStateOf("") }
+    var currentSortOption by remember { mutableStateOf(SongSortOption.TITLE_ASC) }
+    var currentFilterChip by remember { mutableStateOf(SongFilterChip.ALL) }
+    var showSortMenu by remember { mutableStateOf(false) }
+
+    var songToAddToPlaylist by remember { mutableStateOf<SongEntity?>(null) }
 
     Column(
         modifier = Modifier
@@ -166,18 +193,132 @@ fun LibraryScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
         when (selectedTab) {
             0 -> {
-                // All Songs
+                // Filter & Sort Controls for Songs
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    placeholder = { Text(if (isPersian) "جستجوی موزیک یا خواننده..." else "Search tracks or artists...") },
+                    leadingIcon = { Icon(imageVector = Icons.Default.Search, contentDescription = null) },
+                    trailingIcon = {
+                        if (searchQuery.isNotEmpty()) {
+                            IconButton(onClick = { searchQuery = "" }) {
+                                Icon(imageVector = Icons.Default.Clear, contentDescription = "Clear")
+                            }
+                        }
+                    },
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Sort Dropdown Row & Chips
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    LazyRow(
+                        modifier = Modifier.weight(1f),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(SongFilterChip.values()) { chip ->
+                            FilterChip(
+                                selected = currentFilterChip == chip,
+                                onClick = { currentFilterChip = chip },
+                                label = { Text(if (isPersian) chip.titleFa else chip.titleEn) }
+                            )
+                        }
+                    }
+
+                    Box {
+                        IconButton(onClick = { showSortMenu = true }) {
+                            Icon(imageVector = Icons.Default.SortByAlpha, contentDescription = "Sort")
+                        }
+
+                        DropdownMenu(
+                            expanded = showSortMenu,
+                            onDismissRequest = { showSortMenu = false }
+                        ) {
+                            SongSortOption.values().forEach { opt ->
+                                DropdownMenuItem(
+                                    text = { Text(if (isPersian) opt.titleFa else opt.titleEn) },
+                                    onClick = {
+                                        currentSortOption = opt
+                                        showSortMenu = false
+                                    },
+                                    leadingIcon = {
+                                        if (currentSortOption == opt) {
+                                            Icon(imageVector = Icons.Default.Check, contentDescription = null)
+                                        }
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Filtered and Sorted Songs List
+                val processedSongs = remember(allSongs, searchQuery, currentSortOption, currentFilterChip) {
+                    var list = allSongs
+
+                    // Search filter
+                    if (searchQuery.isNotBlank()) {
+                        val q = searchQuery.trim().lowercase()
+                        list = list.filter {
+                            it.title.lowercase().contains(q) ||
+                                    it.artist.lowercase().contains(q) ||
+                                    it.album.lowercase().contains(q)
+                        }
+                    }
+
+                    // Filter Chips
+                    list = when (currentFilterChip) {
+                        SongFilterChip.ALL -> list
+                        SongFilterChip.FAVORITES -> list.filter { it.isFavorite }
+                        SongFilterChip.HIGH_QUALITY -> list.filter { it.bitrate >= 320 }
+                        SongFilterChip.SHORT -> list.filter { it.duration < 180000L }
+                        SongFilterChip.LONG -> list.filter { it.duration > 300000L }
+                    }
+
+                    // Sort Options
+                    when (currentSortOption) {
+                        SongSortOption.TITLE_ASC -> list.sortedBy { it.title.lowercase() }
+                        SongSortOption.TITLE_DESC -> list.sortedByDescending { it.title.lowercase() }
+                        SongSortOption.ARTIST -> list.sortedBy { it.artist.lowercase() }
+                        SongSortOption.NEWEST -> list.sortedByDescending { it.id }
+                        SongSortOption.DURATION_DESC -> list.sortedByDescending { it.duration }
+                        SongSortOption.DURATION_ASC -> list.sortedBy { it.duration }
+                    }
+                }
+
+                Text(
+                    text = "${processedSongs.size} ${if (isPersian) "آهنگ پیدا شد" else "tracks found"}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(allSongs) { song ->
+                    items(processedSongs) { song ->
                         SongListItem(
                             song = song,
                             onClick = {
-                                val idx = allSongs.indexOf(song)
-                                onSongClick(allSongs, idx)
+                                val idx = processedSongs.indexOf(song)
+                                onSongClick(processedSongs, idx)
+                            },
+                            onFavoriteClick = {
+                                onToggleFavorite?.invoke(song)
+                            },
+                            onMoreClick = {
+                                songToAddToPlaylist = song
                             }
                         )
                     }
@@ -255,6 +396,18 @@ fun LibraryScreen(
                 }
             }
         }
+    }
+
+    if (songToAddToPlaylist != null && onAddToPlaylist != null && onCreatePlaylistAndAdd != null) {
+        val s = songToAddToPlaylist!!
+        AddToPlaylistDialog(
+            song = s,
+            playlists = playlists,
+            isPersian = isPersian,
+            onDismiss = { songToAddToPlaylist = null },
+            onAddToPlaylist = { pId, sId -> onAddToPlaylist(pId, sId) },
+            onCreatePlaylistAndAdd = { name, sId -> onCreatePlaylistAndAdd(name, sId) }
+        )
     }
 }
 

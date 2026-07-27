@@ -14,6 +14,7 @@ import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
+import kotlin.math.abs
 
 class MusicRepository(
     private val context: Context,
@@ -30,6 +31,28 @@ class MusicRepository(
     val allPlaylists: Flow<List<PlaylistEntity>> = playlistDao.getAllPlaylists()
     val playbackHistory: Flow<List<PlaybackHistoryEntity>> = historyDao.getAllHistory()
     val equalizerPresets: Flow<List<EqualizerPresetEntity>> = equalizerDao.getAllPresets()
+
+    suspend fun saveEqualizerPreset(
+        name: String,
+        bandLevels: List<Int>,
+        bassBoost: Int = 0,
+        virtualizer: Int = 0,
+        balance: Float = 0f
+    ) {
+        equalizerDao.insertPreset(
+            EqualizerPresetEntity(
+                name = name,
+                bandLevels = bandLevels.joinToString(","),
+                bassBoost = bassBoost,
+                virtualizer = virtualizer,
+                balance = balance
+            )
+        )
+    }
+
+    suspend fun deleteEqualizerPreset(preset: EqualizerPresetEntity) {
+        equalizerDao.deletePreset(preset)
+    }
 
     // Smart Playlists
     val recentlyAdded: Flow<List<SongEntity>> = songDao.getRecentlyAddedSongs()
@@ -146,6 +169,91 @@ class MusicRepository(
         songDao.updateFavorite(songId, isFavorite)
     }
 
+    suspend fun resolveSongFromUri(uri: Uri): SongEntity = withContext(Dispatchers.IO) {
+        val scheme = uri.scheme
+        var title = "Audio Track"
+        var artist = "Unknown Artist"
+        var album = "External Audio"
+        var duration = 0L
+        var size = 0L
+
+        if (scheme == "content" || scheme == "file") {
+            try {
+                context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+                    if (cursor.moveToFirst()) {
+                        val titleIdx = cursor.getColumnIndex(MediaStore.Audio.Media.TITLE)
+                        if (titleIdx != -1) cursor.getString(titleIdx)?.takeIf { it.isNotBlank() }?.let { title = it }
+
+                        val artistIdx = cursor.getColumnIndex(MediaStore.Audio.Media.ARTIST)
+                        if (artistIdx != -1) cursor.getString(artistIdx)?.takeIf { it.isNotBlank() }?.let { artist = it }
+
+                        val albumIdx = cursor.getColumnIndex(MediaStore.Audio.Media.ALBUM)
+                        if (albumIdx != -1) cursor.getString(albumIdx)?.takeIf { it.isNotBlank() }?.let { album = it }
+
+                        val durationIdx = cursor.getColumnIndex(MediaStore.Audio.Media.DURATION)
+                        if (durationIdx != -1) duration = cursor.getLong(durationIdx)
+
+                        val sizeIdx = cursor.getColumnIndex(MediaStore.Audio.Media.SIZE)
+                        if (sizeIdx != -1) size = cursor.getLong(sizeIdx)
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+
+        if (title == "Audio Track") {
+            uri.lastPathSegment?.let { name ->
+                val cleanName = name.substringAfterLast("/").substringAfterLast(":")
+                if (cleanName.isNotBlank()) {
+                    title = cleanName.substringBeforeLast(".")
+                }
+            }
+        }
+
+        if (artist == "Unknown Artist" || duration == 0L) {
+            try {
+                val retriever = android.media.MediaMetadataRetriever()
+                retriever.setDataSource(context, uri)
+                val extractedTitle = retriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_TITLE)
+                val extractedArtist = retriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_ARTIST)
+                val extractedAlbum = retriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_ALBUM)
+                val extractedDur = retriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_DURATION)
+
+                if (!extractedTitle.isNullOrBlank()) title = extractedTitle
+                if (!extractedArtist.isNullOrBlank()) artist = extractedArtist
+                if (!extractedAlbum.isNullOrBlank()) album = extractedAlbum
+                if (!extractedDur.isNullOrBlank()) duration = extractedDur.toLongOrNull() ?: duration
+                retriever.release()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+
+        val externalId = abs(uri.toString().hashCode().toLong())
+        val song = SongEntity(
+            id = externalId,
+            title = title,
+            artist = artist,
+            album = album,
+            duration = if (duration > 0) duration else 180000L,
+            path = uri.toString(),
+            albumArtUri = uri.toString(),
+            genre = "External",
+            year = 2025,
+            folder = "External",
+            bitrate = 320,
+            fileSize = size
+        )
+
+        try {
+            songDao.insertSongs(listOf(song))
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        song
+    }
+
     suspend fun updateSongMetadata(song: SongEntity) {
         songDao.updateSong(song)
     }
@@ -164,10 +272,23 @@ class MusicRepository(
         return playlistDao.insertPlaylist(PlaylistEntity(name = name))
     }
 
+    suspend fun deletePlaylist(playlistId: Long) {
+        playlistDao.clearPlaylist(playlistId)
+        playlistDao.deletePlaylistById(playlistId)
+    }
+
+    suspend fun renamePlaylist(playlistId: Long, newName: String) {
+        playlistDao.renamePlaylist(playlistId, newName)
+    }
+
     suspend fun addSongToPlaylist(playlistId: Long, songId: Long, orderIndex: Int = 0) {
         playlistDao.insertPlaylistSongCrossRef(
             PlaylistSongCrossRef(playlistId, songId, orderIndex)
         )
+    }
+
+    suspend fun removeSongFromPlaylist(playlistId: Long, songId: Long) {
+        playlistDao.removeSongFromPlaylist(playlistId, songId)
     }
 
     fun getSongsForPlaylist(playlistId: Long): Flow<List<SongEntity>> {

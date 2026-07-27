@@ -26,12 +26,21 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
+enum class ShuffleType(val labelEn: String, val labelFa: String) {
+    OFF("Shuffle Off", "شافل خاموش"),
+    STANDARD("Standard Random", "شافل تصادفی"),
+    SMART_ARTIST("Balanced Artists", "شافل متعادل خوانندگان"),
+    FAVORITES_FIRST("Favorites Priority", "شافل اولویت علاقه مندی ها"),
+    FRESH_TRACKS("Fresh Tracks Priority", "شافل اولویت آهنگ‌های جدید")
+}
+
 data class PlayerState(
     val currentSong: SongEntity? = null,
     val isPlaying: Boolean = false,
     val currentPositionMs: Long = 0L,
     val durationMs: Long = 0L,
     val shuffleMode: Boolean = false,
+    val shuffleType: ShuffleType = ShuffleType.OFF,
     val repeatMode: Int = Player.REPEAT_MODE_OFF, // OFF, ONE, ALL
     val playbackSpeed: Float = 1.0f,
     val pitch: Float = 1.0f,
@@ -92,6 +101,26 @@ class TuneCraftMediaService : MediaSessionService() {
 
         var instance: TuneCraftMediaService? = null
             private set
+
+        /**
+         * Dynamically updates the isFavorite state of a song in the current PlayerState
+         * and playback queue for instant UI response without waiting for database observers.
+         */
+        fun updateSongFavoriteStatus(songId: Long, isFavorite: Boolean) {
+            val current = _playerState.value
+            val updatedSong = if (current.currentSong?.id == songId) {
+                current.currentSong.copy(isFavorite = isFavorite)
+            } else current.currentSong
+
+            val updatedQueue = current.queue.map { song ->
+                if (song.id == songId) song.copy(isFavorite = isFavorite) else song
+            }
+
+            _playerState.value = current.copy(
+                currentSong = updatedSong,
+                queue = updatedQueue
+            )
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -197,6 +226,9 @@ class TuneCraftMediaService : MediaSessionService() {
         val targetSong = songs[targetIndex]
 
         val mediaItems = songs.map { song ->
+            val artworkUri = song.albumArtUri?.takeIf { it.isNotBlank() }?.let { Uri.parse(it) }
+                ?: if (song.path.startsWith("content://") || song.path.startsWith("file://")) Uri.parse(song.path) else null
+
             MediaItem.Builder()
                 .setMediaId(song.id.toString())
                 .setUri(song.path)
@@ -205,7 +237,11 @@ class TuneCraftMediaService : MediaSessionService() {
                         .setTitle(song.title)
                         .setArtist(song.artist)
                         .setAlbumTitle(song.album)
-                        .setArtworkUri(song.albumArtUri?.let { Uri.parse(it) })
+                        .setAlbumArtist(song.artist)
+                        .setGenre(song.genre)
+                        .setArtworkUri(artworkUri)
+                        .setIsPlayable(true)
+                        .setFolderType(MediaMetadata.FOLDER_TYPE_NONE)
                         .build()
                 )
                 .build()
@@ -256,8 +292,34 @@ class TuneCraftMediaService : MediaSessionService() {
     }
 
     fun setShuffleMode(enabled: Boolean) {
-        exoPlayer.shuffleModeEnabled = enabled
-        _playerState.value = _playerState.value.copy(shuffleMode = enabled)
+        if (enabled) {
+            cycleShuffleType()
+        } else {
+            exoPlayer.shuffleModeEnabled = false
+            _playerState.value = _playerState.value.copy(shuffleMode = false, shuffleType = ShuffleType.OFF)
+        }
+    }
+
+    fun cycleShuffleType() {
+        val nextType = when (_playerState.value.shuffleType) {
+            ShuffleType.OFF -> ShuffleType.STANDARD
+            ShuffleType.STANDARD -> ShuffleType.SMART_ARTIST
+            ShuffleType.SMART_ARTIST -> ShuffleType.FAVORITES_FIRST
+            ShuffleType.FAVORITES_FIRST -> ShuffleType.FRESH_TRACKS
+            ShuffleType.FRESH_TRACKS -> ShuffleType.OFF
+        }
+        applyShuffleType(nextType)
+    }
+
+    fun applyShuffleType(type: ShuffleType) {
+        if (type == ShuffleType.OFF) {
+            exoPlayer.shuffleModeEnabled = false
+            _playerState.value = _playerState.value.copy(shuffleMode = false, shuffleType = ShuffleType.OFF)
+            return
+        }
+
+        exoPlayer.shuffleModeEnabled = true
+        _playerState.value = _playerState.value.copy(shuffleMode = true, shuffleType = type)
     }
 
     fun toggleRepeatMode() {

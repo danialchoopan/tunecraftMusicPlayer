@@ -124,37 +124,7 @@ class AudioFxManager(
     }
 
     private fun initVisualizerInternal(audioSessionId: Int) {
-        try {
-            visualizer?.release()
-            visualizer = Visualizer(audioSessionId).apply {
-                captureSize = Visualizer.getCaptureSizeRange()[1].coerceAtMost(512)
-                setDataCaptureListener(
-                    object : Visualizer.OnDataCaptureListener {
-                        override fun onWaveFormDataCapture(
-                            v: Visualizer?,
-                            waveform: ByteArray?,
-                            samplingRate: Int
-                        ) {}
-
-                        override fun onFftDataCapture(
-                            v: Visualizer?,
-                            fft: ByteArray?,
-                            samplingRate: Int
-                        ) {
-                            if (fft != null && fft.isNotEmpty()) {
-                                processFft(fft)
-                            }
-                        }
-                    },
-                    Visualizer.getMaxCaptureRate() / 2,
-                    false,
-                    true
-                )
-                enabled = true
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
+        // Visualizer disabled by user request
     }
 
     private fun processFft(fft: ByteArray) {

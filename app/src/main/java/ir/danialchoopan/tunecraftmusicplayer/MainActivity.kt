@@ -3,6 +3,7 @@ package ir.danialchoopan.tunecraftmusicplayer
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
@@ -13,6 +14,8 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -40,6 +43,7 @@ import ir.danialchoopan.tunecraftmusicplayer.service.TuneCraftMediaService
 import ir.danialchoopan.tunecraftmusicplayer.ui.components.MiniPlayer
 import ir.danialchoopan.tunecraftmusicplayer.ui.components.NowPlayingSheet
 import ir.danialchoopan.tunecraftmusicplayer.ui.components.TagEditDialog
+import ir.danialchoopan.tunecraftmusicplayer.ui.components.AddToPlaylistDialog
 import ir.danialchoopan.tunecraftmusicplayer.ui.navigation.Screen
 import ir.danialchoopan.tunecraftmusicplayer.ui.screens.*
 import ir.danialchoopan.tunecraftmusicplayer.ui.theme.TuneCraftTheme
@@ -63,6 +67,8 @@ class MainActivity : ComponentActivity() {
         } catch (e: Exception) {
             e.printStackTrace()
         }
+
+        handleIncomingAudioIntent(intent)
 
         setContent {
             val themeMode by preferences.themeMode.collectAsState(initial = "DARK")
@@ -149,11 +155,13 @@ class MainActivity : ComponentActivity() {
                     val recentlyAdded by repository.recentlyAdded.collectAsStateWithLifecycle(initialValue = emptyList())
                     val longestSongs by repository.longestSongs.collectAsStateWithLifecycle(initialValue = emptyList())
                     val shortestSongs by repository.shortestSongs.collectAsStateWithLifecycle(initialValue = emptyList())
+                    val customPresets by repository.equalizerPresets.collectAsStateWithLifecycle(initialValue = emptyList())
 
                     val playerState by TuneCraftMediaService.playerState.collectAsStateWithLifecycle(initialValue = PlayerState())
 
                     var showNowPlayingSheet by remember { mutableStateOf(false) }
                     var songToEditTags by remember { mutableStateOf<SongEntity?>(null) }
+                    var songToAddToPlaylist by remember { mutableStateOf<SongEntity?>(null) }
 
                     val mediaService = TuneCraftMediaService.instance
 
@@ -172,6 +180,7 @@ class MainActivity : ComponentActivity() {
                                 Column(
                                     modifier = Modifier
                                         .fillMaxSize()
+                                        .verticalScroll(rememberScrollState())
                                         .padding(16.dp)
                                 ) {
                                     // Header
@@ -213,6 +222,8 @@ class MainActivity : ComponentActivity() {
                                         Screen.Home to Icons.Default.Home,
                                         Screen.Library to Icons.Default.LibraryMusic,
                                         Screen.Playlists to Icons.Default.QueueMusic,
+                                        Screen.Equalizer to Icons.Default.Equalizer,
+                                        Screen.CarMode to Icons.Default.DirectionsCar,
                                         Screen.Search to Icons.Default.Search,
                                         Screen.Statistics to Icons.Default.BarChart,
                                         Screen.Settings to Icons.Default.Settings,
@@ -254,180 +265,127 @@ class MainActivity : ComponentActivity() {
                                             modifier = Modifier.padding(vertical = 2.dp)
                                         )
                                     }
-
-                                    HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
-
-                                    // Accessibility & Personalization
-                                    Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                                        Icon(
-                                            imageVector = Icons.Default.Accessibility,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.primary
-                                        )
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text(
-                                            text = if (isPersian) "دسترسی‌پذیری و متن" else "Accessibility & Text",
-                                            style = MaterialTheme.typography.titleSmall,
-                                            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
-                                        )
-                                    }
-
-                                    Spacer(modifier = Modifier.height(8.dp))
-
-                                    Text(
-                                        text = if (isPersian) "اندازه قلم و متون:" else "Font Size Scale:",
-                                        style = MaterialTheme.typography.labelSmall
-                                    )
-
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                    ) {
-                                        listOf(
-                                            1.0f to (if (isPersian) "عادی" else "Normal"),
-                                            1.15f to (if (isPersian) "بزرگ" else "Large"),
-                                            1.3f to (if (isPersian) "خیلی بزرگ" else "Huge")
-                                        ).forEach { (scale, label) ->
-                                            FilterChip(
-                                                selected = fontScale == scale,
-                                                onClick = {
-                                                    coroutineScope.launch { preferences.setFontScale(scale) }
-                                                },
-                                                label = { Text(label) }
-                                            )
-                                        }
-                                    }
-
-                                    Spacer(modifier = Modifier.height(8.dp))
-
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
-                                    ) {
-                                        Text(
-                                            text = if (isPersian) "زبان برنامه (Language)" else "Language",
-                                            style = MaterialTheme.typography.bodySmall
-                                        )
-                                        TextButton(onClick = {
-                                            coroutineScope.launch { preferences.setLanguage(if (isPersian) "EN" else "FA") }
-                                        }) {
-                                            Text(if (isPersian) "English" else "فارسی")
-                                        }
-                                    }
                                 }
                             }
                         }
                     ) {
                         Scaffold(
                             topBar = {
-                                TopAppBar(
-                                    title = {
-                                        val screenTitle = when {
-                                            currentRoute == Screen.Home.route -> {
-                                                val activeTab = mainTabs.getOrElse(pagerState.currentPage) { Screen.Home }
-                                                if (isPersian) activeTab.titleFa else activeTab.titleEn
+                                if (currentRoute != Screen.CarMode.route) {
+                                    TopAppBar(
+                                        title = {
+                                            val screenTitle = when {
+                                                currentRoute == Screen.Home.route -> {
+                                                    val activeTab = mainTabs.getOrElse(pagerState.currentPage) { Screen.Home }
+                                                    if (isPersian) activeTab.titleFa else activeTab.titleEn
+                                                }
+                                                currentRoute == Screen.Search.route -> if (isPersian) "جستجو" else "Search"
+                                                currentRoute == Screen.Statistics.route -> if (isPersian) "آمار شنیداری" else "Statistics"
+                                                currentRoute == Screen.Settings.route -> if (isPersian) "تنظیمات" else "Settings"
+                                                currentRoute == Screen.About.route -> if (isPersian) "درباره ما" else "About Us"
+                                                else -> "TuneCraft"
                                             }
-                                            currentRoute == Screen.Search.route -> if (isPersian) "جستجو" else "Search"
-                                            currentRoute == Screen.Statistics.route -> if (isPersian) "آمار شنیداری" else "Statistics"
-                                            currentRoute == Screen.Settings.route -> if (isPersian) "تنظیمات" else "Settings"
-                                            currentRoute == Screen.About.route -> if (isPersian) "درباره ما" else "About Us"
-                                            else -> "TuneCraft"
-                                        }
-                                        Text(text = screenTitle, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
-                                    },
-                                    navigationIcon = {
-                                        IconButton(onClick = { coroutineScope.launch { drawerState.open() } }) {
-                                            Icon(
-                                                imageVector = Icons.Default.Menu,
-                                                contentDescription = "Open Drawer"
-                                            )
-                                        }
-                                    },
-                                    actions = {
-                                        if (currentRoute != Screen.Search.route) {
-                                            IconButton(onClick = { navController.navigate(Screen.Search.route) }) {
-                                                Icon(imageVector = Icons.Default.Search, contentDescription = "Search")
+                                            Text(text = screenTitle, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+                                        },
+                                        navigationIcon = {
+                                            IconButton(onClick = { coroutineScope.launch { drawerState.open() } }) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Menu,
+                                                    contentDescription = "Open Drawer"
+                                                )
+                                            }
+                                        },
+                                        actions = {
+                                            if (currentRoute != Screen.Search.route) {
+                                                IconButton(onClick = { navController.navigate(Screen.Search.route) }) {
+                                                    Icon(imageVector = Icons.Default.Search, contentDescription = "Search")
+                                                }
                                             }
                                         }
-                                    }
-                                )
+                                    )
+                                }
                             },
                             bottomBar = {
-                                Column {
-                                    if (playerState.currentSong != null) {
-                                        MiniPlayer(
-                                            playerState = playerState,
-                                            onPlayPause = { mediaService?.playPause() },
-                                            onNext = { mediaService?.next() },
-                                            onClick = { showNowPlayingSheet = true }
-                                        )
-                                    }
-
-                                    // Core 3-Item Floating Bottom Navigation Bar with smooth Swipeable Pager Integration
-                                    Surface(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(horizontal = 16.dp, vertical = 8.dp),
-                                        shape = RoundedCornerShape(28.dp),
-                                        color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.95f),
-                                        tonalElevation = 8.dp,
-                                        shadowElevation = 10.dp
+                                if (currentRoute != Screen.CarMode.route) {
+                                    Column(
+                                        modifier = Modifier.navigationBarsPadding()
                                     ) {
-                                        Row(
+                                        if (playerState.currentSong != null) {
+                                            MiniPlayer(
+                                                playerState = playerState,
+                                                onPlayPause = { mediaService?.playPause() },
+                                                onNext = { mediaService?.next() },
+                                                onPrevious = { mediaService?.previous() },
+                                                onClick = { showNowPlayingSheet = true },
+                                                isPersian = isPersian
+                                            )
+                                        }
+
+                                        // Core 3-Item Floating Bottom Navigation Bar with smooth Swipeable Pager Integration
+                                        Surface(
                                             modifier = Modifier
                                                 .fillMaxWidth()
-                                                .padding(horizontal = 6.dp, vertical = 6.dp),
-                                            horizontalArrangement = Arrangement.SpaceEvenly,
-                                            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                                            shape = RoundedCornerShape(28.dp),
+                                            color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.95f),
+                                            tonalElevation = 8.dp,
+                                            shadowElevation = 10.dp
                                         ) {
-                                            val bottomNavItems = listOf(
-                                                Screen.Home to Icons.Default.Home,
-                                                Screen.Library to Icons.Default.LibraryMusic,
-                                                Screen.Playlists to Icons.Default.QueueMusic
-                                            )
+                                            Row(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(horizontal = 6.dp, vertical = 6.dp),
+                                                horizontalArrangement = Arrangement.SpaceEvenly,
+                                                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                                            ) {
+                                                val bottomNavItems = listOf(
+                                                    Screen.Home to Icons.Default.Home,
+                                                    Screen.Library to Icons.Default.LibraryMusic,
+                                                    Screen.Playlists to Icons.Default.QueueMusic
+                                                )
 
-                                            bottomNavItems.forEachIndexed { index, (screen, icon) ->
-                                                val isSelected = currentRoute == Screen.Home.route && pagerState.currentPage == index
+                                                bottomNavItems.forEachIndexed { index, (screen, icon) ->
+                                                    val isSelected = currentRoute == Screen.Home.route && pagerState.currentPage == index
 
-                                                Surface(
-                                                    onClick = {
-                                                        if (currentRoute != Screen.Home.route) {
-                                                            navController.navigate(Screen.Home.route) {
-                                                                popUpTo(navController.graph.findStartDestination().id) {
-                                                                    saveState = true
+                                                    Surface(
+                                                        onClick = {
+                                                            if (currentRoute != Screen.Home.route) {
+                                                                navController.navigate(Screen.Home.route) {
+                                                                    popUpTo(navController.graph.findStartDestination().id) {
+                                                                        saveState = true
+                                                                    }
+                                                                    launchSingleTop = true
+                                                                    restoreState = true
                                                                 }
-                                                                launchSingleTop = true
-                                                                restoreState = true
                                                             }
-                                                        }
-                                                        coroutineScope.launch {
-                                                            pagerState.animateScrollToPage(index)
-                                                        }
-                                                    },
-                                                    shape = RoundedCornerShape(20.dp),
-                                                    color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else androidx.compose.ui.graphics.Color.Transparent,
-                                                    modifier = Modifier.padding(horizontal = 2.dp)
-                                                ) {
-                                                    Row(
-                                                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
-                                                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
-                                                        horizontalArrangement = Arrangement.Center
+                                                            coroutineScope.launch {
+                                                                pagerState.animateScrollToPage(index)
+                                                            }
+                                                        },
+                                                        shape = RoundedCornerShape(20.dp),
+                                                        color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else androidx.compose.ui.graphics.Color.Transparent,
+                                                        modifier = Modifier.padding(horizontal = 2.dp)
                                                     ) {
-                                                        Icon(
-                                                            imageVector = icon,
-                                                            contentDescription = screen.titleEn,
-                                                            tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                                                            modifier = Modifier.size(22.dp)
-                                                        )
-                                                        if (isSelected) {
-                                                            Spacer(modifier = Modifier.width(8.dp))
-                                                            Text(
-                                                                text = if (isPersian) screen.titleFa else screen.titleEn,
-                                                                style = MaterialTheme.typography.labelMedium,
-                                                                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
-                                                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                                                        Row(
+                                                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                                                            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                                                            horizontalArrangement = Arrangement.Center
+                                                        ) {
+                                                            Icon(
+                                                                imageVector = icon,
+                                                                contentDescription = screen.titleEn,
+                                                                tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                                                modifier = Modifier.size(22.dp)
                                                             )
+                                                            if (isSelected) {
+                                                                Spacer(modifier = Modifier.width(8.dp))
+                                                                Text(
+                                                                    text = if (isPersian) screen.titleFa else screen.titleEn,
+                                                                    style = MaterialTheme.typography.labelMedium,
+                                                                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                                                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                                                )
+                                                            }
                                                         }
                                                     }
                                                 }
@@ -469,6 +427,7 @@ class MainActivity : ComponentActivity() {
                                             )
                                             1 -> LibraryScreen(
                                                 allSongs = allSongs,
+                                                playlists = playlists,
                                                 isPersian = isPersian,
                                                 hasAudioPermission = hasAudioPermission,
                                                 onRequestPermission = { permissionLauncher.launch(audioPermission) },
@@ -478,6 +437,32 @@ class MainActivity : ComponentActivity() {
                                                         repository.scanLocalMedia()
                                                         Toast.makeText(this@MainActivity, if (isPersian) "اسکن مجدد انجام شد" else "Media Rescanned", Toast.LENGTH_SHORT).show()
                                                     }
+                                                },
+                                                onAddToPlaylist = { pId, sId ->
+                                                    lifecycleScope.launch {
+                                                        repository.addSongToPlaylist(pId, sId)
+                                                        Toast.makeText(this@MainActivity, if (isPersian) "به لیست پخش اضافه شد" else "Added to Playlist", Toast.LENGTH_SHORT).show()
+                                                    }
+                                                },
+                                                onCreatePlaylistAndAdd = { name, sId ->
+                                                    lifecycleScope.launch {
+                                                        val newId = repository.createPlaylist(name)
+                                                        repository.addSongToPlaylist(newId, sId)
+                                                        Toast.makeText(this@MainActivity, if (isPersian) "لیست پخش ایجاد و آهنگ اضافه شد" else "Playlist created and song added", Toast.LENGTH_SHORT).show()
+                                                    }
+                                                },
+                                                onToggleFavorite = { song ->
+                                                    lifecycleScope.launch {
+                                                        val newFav = !song.isFavorite
+                                                        TuneCraftMediaService.updateSongFavoriteStatus(song.id, newFav)
+                                                        repository.toggleFavorite(song.id, newFav)
+                                                        Toast.makeText(
+                                                            this@MainActivity,
+                                                            if (newFav) (if (isPersian) "به علاقه‌مندی‌ها اضافه شد" else "Added to Favorites")
+                                                            else (if (isPersian) "از علاقه‌مندی‌ها حذف شد" else "Removed from Favorites"),
+                                                            Toast.LENGTH_SHORT
+                                                        ).show()
+                                                    }
                                                 }
                                             )
                                             2 -> PlaylistsScreen(
@@ -486,13 +471,21 @@ class MainActivity : ComponentActivity() {
                                                 recentlyPlayed = recentlyPlayed,
                                                 mostPlayed = mostPlayed,
                                                 recentlyAdded = recentlyAdded,
-                                                longestSongs = longestSongs,
-                                                shortestSongs = shortestSongs,
                                                 isPersian = isPersian,
                                                 onCreatePlaylist = { name ->
                                                     lifecycleScope.launch { repository.createPlaylist(name) }
                                                 },
-                                                onPlaylistClick = { list -> mediaService?.playSongs(list, 0) }
+                                                onDeletePlaylist = { id ->
+                                                    lifecycleScope.launch { repository.deletePlaylist(id) }
+                                                },
+                                                onRenamePlaylist = { id, name ->
+                                                    lifecycleScope.launch { repository.renamePlaylist(id, name) }
+                                                },
+                                                onRemoveSongFromPlaylist = { pId, sId ->
+                                                    lifecycleScope.launch { repository.removeSongFromPlaylist(pId, sId) }
+                                                },
+                                                getSongsForPlaylistFlow = { id -> repository.getSongsForPlaylist(id) },
+                                                onPlaySongs = { list, idx -> mediaService?.playSongs(list, idx) }
                                             )
                                         }
                                     }
@@ -529,6 +522,30 @@ class MainActivity : ComponentActivity() {
                                 composable(Screen.About.route) {
                                     AboutScreen(isPersian = isPersian)
                                 }
+                                composable(Screen.Equalizer.route) {
+                                    EqualizerScreen(
+                                        audioFxManager = mediaService?.getAudioFxManager(),
+                                        musicRepository = repository,
+                                        isPersian = isPersian,
+                                        onBack = { navController.popBackStack() }
+                                    )
+                                }
+                                composable(Screen.CarMode.route) {
+                                    CarModeScreen(
+                                        playerState = playerState,
+                                        audioFxManager = mediaService?.getAudioFxManager(),
+                                        allSongs = allSongs,
+                                        favoriteSongs = favoriteSongs,
+                                        recentlyPlayed = recentlyPlayed,
+                                        isPersian = isPersian,
+                                        onExitCarMode = { navController.popBackStack() },
+                                        onPlayPause = { mediaService?.playPause() },
+                                        onNext = { mediaService?.next() },
+                                        onPrevious = { mediaService?.previous() },
+                                        onSeekTo = { mediaService?.seekTo(it) },
+                                        onPlaySongs = { list, idx -> mediaService?.playSongs(list, idx) }
+                                    )
+                                }
                             }
                         }
                     }
@@ -544,12 +561,52 @@ class MainActivity : ComponentActivity() {
                             onPrevious = { mediaService?.previous() },
                             onSeekTo = { mediaService?.seekTo(it) },
                             onToggleFavorite = { song ->
-                                lifecycleScope.launch { repository.toggleFavorite(song.id, !song.isFavorite) }
+                                lifecycleScope.launch {
+                                    val newFav = !song.isFavorite
+                                    TuneCraftMediaService.updateSongFavoriteStatus(song.id, newFav)
+                                    repository.toggleFavorite(song.id, newFav)
+                                    Toast.makeText(
+                                        this@MainActivity,
+                                        if (newFav) (if (isPersian) "به علاقه‌مندی‌ها اضافه شد" else "Added to Favorites")
+                                        else (if (isPersian) "از علاقه‌مندی‌ها حذف شد" else "Removed from Favorites"),
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
                             },
                             onToggleShuffle = { mediaService?.setShuffleMode(!playerState.shuffleMode) },
                             onToggleRepeat = { mediaService?.toggleRepeatMode() },
                             onSetSleepTimer = { mins -> mediaService?.startSleepTimer(mins) },
-                            onEditTags = { songToEditTags = it }
+                            onEditTags = { songToEditTags = it },
+                            onAddToPlaylistClick = { songToAddToPlaylist = it },
+                            customPresets = customPresets,
+                            onSaveCustomPreset = { name, bandLevels, bassBoost, virtualizer, balance ->
+                                lifecycleScope.launch {
+                                    repository.saveEqualizerPreset(name, bandLevels, bassBoost, virtualizer, balance)
+                                }
+                            },
+                            onDeleteCustomPreset = { preset ->
+                                lifecycleScope.launch {
+                                    repository.deleteEqualizerPreset(preset)
+                                }
+                            }
+                        )
+                    }
+
+                    songToAddToPlaylist?.let { song ->
+                        AddToPlaylistDialog(
+                            song = song,
+                            playlists = playlists,
+                            isPersian = isPersian,
+                            onDismiss = { songToAddToPlaylist = null },
+                            onAddToPlaylist = { pId, sId ->
+                                lifecycleScope.launch { repository.addSongToPlaylist(pId, sId) }
+                            },
+                            onCreatePlaylistAndAdd = { name, sId ->
+                                lifecycleScope.launch {
+                                    val newId = repository.createPlaylist(name)
+                                    repository.addSongToPlaylist(newId, sId)
+                                }
+                            }
                         )
                     }
 
@@ -567,6 +624,43 @@ class MainActivity : ComponentActivity() {
                             }
                         )
                     }
+                }
+            }
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleIncomingAudioIntent(intent)
+    }
+
+    private fun handleIncomingAudioIntent(intent: Intent?) {
+        val action = intent?.action
+        val dataUri: Uri? = if (action == Intent.ACTION_VIEW) {
+            intent.data
+        } else if (action == Intent.ACTION_SEND) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                intent.getParcelableExtra(Intent.EXTRA_STREAM, Uri::class.java)
+            } else {
+                @Suppress("DEPRECATION")
+                intent.getParcelableExtra(Intent.EXTRA_STREAM) as? Uri
+            }
+        } else null
+
+        if (dataUri != null) {
+            lifecycleScope.launch {
+                try {
+                    val repository = (application as TuneCraftApplication).musicRepository
+                    val song = repository.resolveSongFromUri(dataUri)
+                    TuneCraftMediaService.instance?.playSongs(listOf(song), 0)
+                    Toast.makeText(
+                        this@MainActivity,
+                        "Playing: ${song.title}",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                } catch (e: Exception) {
+                    e.printStackTrace()
                 }
             }
         }

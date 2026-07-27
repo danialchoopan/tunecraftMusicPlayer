@@ -35,8 +35,7 @@ import ir.danialchoopan.tunecraftmusicplayer.R
 import ir.danialchoopan.tunecraftmusicplayer.data.local.entity.SongEntity
 import ir.danialchoopan.tunecraftmusicplayer.service.AudioFxManager
 import ir.danialchoopan.tunecraftmusicplayer.service.PlayerState
-import ir.danialchoopan.tunecraftmusicplayer.ui.components.VisualizerCanvas
-import ir.danialchoopan.tunecraftmusicplayer.ui.components.VisualizerMode
+import ir.danialchoopan.tunecraftmusicplayer.ui.components.SwipeableTrackContainer
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -227,110 +226,113 @@ fun CarModeScreen(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Center Media Display Card
-        Card(
+        val nextSong = if (playerState.currentIndex in 0 until playerState.queue.size - 1) {
+            playerState.queue.getOrNull(playerState.currentIndex + 1)
+        } else playerState.queue.firstOrNull()
+
+        val previousSong = if (playerState.currentIndex > 0) {
+            playerState.queue.getOrNull(playerState.currentIndex - 1)
+        } else playerState.queue.lastOrNull()
+
+        // Center Media Display Card wrapped with Swipeable Track Gestures
+        SwipeableTrackContainer(
+            onNext = onNext,
+            onPrevious = onPrevious,
+            nextSong = nextSong,
+            previousSong = previousSong,
+            isPersian = isPersian,
             modifier = Modifier
                 .fillMaxWidth()
-                .weight(1f),
-            colors = CardDefaults.cardColors(containerColor = cardColor),
-            shape = RoundedCornerShape(24.dp)
+                .weight(1f)
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically
+            Card(
+                modifier = Modifier.fillMaxSize(),
+                colors = CardDefaults.cardColors(containerColor = cardColor),
+                shape = RoundedCornerShape(24.dp)
             ) {
-                // Album Art (Large)
-                Box(
+                Row(
                     modifier = Modifier
-                        .size(180.dp)
-                        .clip(RoundedCornerShape(20.dp))
-                        .background(Color(0xFF1F2937)),
-                    contentAlignment = Alignment.Center
+                        .fillMaxSize()
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    AsyncImage(
-                        model = ImageRequest.Builder(context)
-                            .data(if (!currentSong?.albumArtUri.isNullOrEmpty()) currentSong?.albumArtUri else currentSong?.path)
-                            .crossfade(true)
-                            .error(R.drawable.blue_album_placeholder_1785090944004)
-                            .placeholder(R.drawable.blue_album_placeholder_1785090944004)
-                            .build(),
-                        contentDescription = "Album Art",
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize()
-                    )
-                }
-
-                Spacer(modifier = Modifier.width(20.dp))
-
-                // Song Info + Visualizer
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight(),
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Text(
-                        text = currentSong?.title ?: (if (isPersian) "هیچ آهنگی در حال پخش نیست" else "No track selected"),
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = Color.White,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Text(
-                        text = currentSong?.artist ?: (if (isPersian) "هنرمند ناشناس" else "Unknown Artist"),
-                        style = MaterialTheme.typography.titleLarge,
-                        color = Color(0xFF38BDF8),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // Live Visualizer waveform inside car screen
-                    VisualizerCanvas(
-                        isPlaying = isPlaying,
-                        audioFxManager = audioFxManager,
-                        mode = VisualizerMode.BARS,
+                    // Album Art (Large)
+                    Box(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .height(60.dp),
-                        primaryColor = Color(0xFF0088FF),
-                        secondaryColor = Color(0xFF06B6D4)
-                    )
-
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    // Progress slider + times
-                    Slider(
-                        value = position.toFloat(),
-                        onValueChange = { onSeekTo(it.toLong()) },
-                        valueRange = 0f..duration.toFloat(),
-                        colors = SliderDefaults.colors(
-                            thumbColor = Color(0xFF38BDF8),
-                            activeTrackColor = Color(0xFF0088FF),
-                            inactiveTrackColor = Color(0xFF334155)
+                            .size(180.dp)
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(Color(0xFF1F2937)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        AsyncImage(
+                            model = ImageRequest.Builder(context)
+                                .data(if (!currentSong?.albumArtUri.isNullOrEmpty()) currentSong?.albumArtUri else currentSong?.path)
+                                .crossfade(true)
+                                .error(R.drawable.blue_album_placeholder_1785090944004)
+                                .placeholder(R.drawable.blue_album_placeholder_1785090944004)
+                                .build(),
+                            contentDescription = "Album Art",
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize()
                         )
-                    )
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
+                    }
+
+                    Spacer(modifier = Modifier.width(20.dp))
+
+                    // Song Info + Visualizer
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight(),
+                        verticalArrangement = Arrangement.Center
                     ) {
                         Text(
-                            text = formatTime(position),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White
+                            text = currentSong?.title ?: (if (isPersian) "هیچ آهنگی در حال پخش نیست" else "No track selected"),
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = Color.White,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
                         )
+                        Spacer(modifier = Modifier.height(6.dp))
                         Text(
-                            text = formatTime(duration),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF94A3B8)
+                            text = currentSong?.artist ?: (if (isPersian) "هنرمند ناشناس" else "Unknown Artist"),
+                            style = MaterialTheme.typography.titleLarge,
+                            color = Color(0xFF38BDF8),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        // Progress slider + times
+                        Slider(
+                            value = position.toFloat(),
+                            onValueChange = { onSeekTo(it.toLong()) },
+                            valueRange = 0f..duration.toFloat(),
+                            colors = SliderDefaults.colors(
+                                thumbColor = Color(0xFF38BDF8),
+                                activeTrackColor = Color(0xFF0088FF),
+                                inactiveTrackColor = Color(0xFF334155)
+                            )
+                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = formatTime(position),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                            Text(
+                                text = formatTime(duration),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF94A3B8)
+                            )
+                        }
                     }
                 }
             }

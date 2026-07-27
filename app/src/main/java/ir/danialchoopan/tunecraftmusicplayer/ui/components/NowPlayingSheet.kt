@@ -1,6 +1,9 @@
 package ir.danialchoopan.tunecraftmusicplayer.ui.components
 
+import android.widget.Toast
 import androidx.compose.foundation.background
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -49,11 +52,15 @@ fun NowPlayingSheet(
     onToggleShuffle: () -> Unit,
     onToggleRepeat: () -> Unit,
     onSetSleepTimer: (Int) -> Unit,
-    onEditTags: (SongEntity) -> Unit
+    onEditTags: (SongEntity) -> Unit,
+    onAddToPlaylistClick: ((SongEntity) -> Unit)? = null,
+    customPresets: List<ir.danialchoopan.tunecraftmusicplayer.data.local.entity.EqualizerPresetEntity> = emptyList(),
+    onSaveCustomPreset: ((String, List<Int>, Int, Int, Float) -> Unit)? = null,
+    onDeleteCustomPreset: ((ir.danialchoopan.tunecraftmusicplayer.data.local.entity.EqualizerPresetEntity) -> Unit)? = null
 ) {
     val song = playerState.currentSong ?: return
     val context = LocalContext.current
-    var activeTab by remember { mutableStateOf(0) } // 0: Player, 1: Visualizer, 2: Lyrics, 3: Equalizer
+    var activeTab by remember { mutableStateOf(0) } // 0: Player, 1: Lyrics, 2: Equalizer
     var showSleepTimerDialog by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
 
@@ -78,16 +85,11 @@ fun NowPlayingSheet(
                 Tab(
                     selected = activeTab == 1,
                     onClick = { activeTab = 1 },
-                    text = { Text(if (isPersian) "ویژوالایزر" else "Visualizer") }
+                    text = { Text(if (isPersian) "متن ترانه" else "Lyrics") }
                 )
                 Tab(
                     selected = activeTab == 2,
                     onClick = { activeTab = 2 },
-                    text = { Text(if (isPersian) "متن ترانه" else "Lyrics") }
-                )
-                Tab(
-                    selected = activeTab == 3,
-                    onClick = { activeTab = 3 },
                     text = { Text(if (isPersian) "اکولایزر" else "Equalizer") }
                 )
             }
@@ -96,30 +98,6 @@ fun NowPlayingSheet(
 
             when (activeTab) {
                 1 -> {
-                    // Visualizer Tab
-                    var vizMode by remember { mutableStateOf(VisualizerMode.BARS) }
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.padding(bottom = 8.dp)
-                    ) {
-                        VisualizerMode.values().forEach { mode ->
-                            FilterChip(
-                                selected = vizMode == mode,
-                                onClick = { vizMode = mode },
-                                label = { Text(mode.name) }
-                            )
-                        }
-                    }
-                    VisualizerCanvas(
-                        isPlaying = playerState.isPlaying,
-                        audioFxManager = audioFxManager,
-                        mode = vizMode,
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxWidth()
-                    )
-                }
-                2 -> {
                     // Lyrics Tab
                     Box(modifier = Modifier.weight(1f)) {
                         LyricsView(
@@ -129,75 +107,106 @@ fun NowPlayingSheet(
                         )
                     }
                 }
-                3 -> {
+                2 -> {
                     // Equalizer Tab
                     Box(modifier = Modifier.weight(1f)) {
                         EqualizerView(
                             audioFxManager = audioFxManager,
+                            customPresets = customPresets,
+                            onSaveCustomPreset = onSaveCustomPreset,
+                            onDeleteCustomPreset = onDeleteCustomPreset,
                             isPersian = isPersian
                         )
                     }
                 }
                 else -> {
-                    // Default Player Tab
-                    Column(
-                        modifier = Modifier.weight(1f),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
+                    // Default Player Tab with Next/Previous Swipe Previews
+                    val nextSong = if (playerState.currentIndex in 0 until playerState.queue.size - 1) {
+                        playerState.queue.getOrNull(playerState.currentIndex + 1)
+                    } else playerState.queue.firstOrNull()
+
+                    val previousSong = if (playerState.currentIndex > 0) {
+                        playerState.queue.getOrNull(playerState.currentIndex - 1)
+                    } else playerState.queue.lastOrNull()
+
+                    SwipeableTrackContainer(
+                        onNext = onNext,
+                        onPrevious = onPrevious,
+                        nextSong = nextSong,
+                        previousSong = previousSong,
+                        isPersian = isPersian,
+                        modifier = Modifier.weight(1f)
                     ) {
-                        // Large Artwork
-                        AsyncImage(
-                            model = ImageRequest.Builder(context)
-                                .data(if (!song.albumArtUri.isNullOrEmpty()) song.albumArtUri else song.path)
-                                .crossfade(true)
-                                .error(R.drawable.blue_album_placeholder_1785090944004)
-                                .placeholder(R.drawable.blue_album_placeholder_1785090944004)
-                                .build(),
-                            contentDescription = "Album Art",
-                            contentScale = ContentScale.Crop,
+                        Column(
                             modifier = Modifier
-                                .size(280.dp)
-                                .clip(RoundedCornerShape(24.dp))
-                        )
-
-                        Spacer(modifier = Modifier.height(24.dp))
-
-                        // Title, Artist & Tag Edit
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                                .fillMaxSize()
+                                .verticalScroll(rememberScrollState()),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
                         ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = song.title,
-                                    style = MaterialTheme.typography.titleLarge,
-                                    fontWeight = FontWeight.Bold,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                                Text(
-                                    text = "${song.artist} • ${song.album}",
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                            }
+                            // Large Artwork
+                            AsyncImage(
+                                model = ImageRequest.Builder(context)
+                                    .data(if (!song.albumArtUri.isNullOrEmpty()) song.albumArtUri else song.path)
+                                    .crossfade(true)
+                                    .error(R.drawable.blue_album_placeholder_1785090944004)
+                                    .placeholder(R.drawable.blue_album_placeholder_1785090944004)
+                                    .build(),
+                                contentDescription = "Album Art",
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier
+                                    .size(280.dp)
+                                    .clip(RoundedCornerShape(24.dp))
+                            )
 
-                            IconButton(onClick = { onToggleFavorite(song) }) {
-                                Icon(
-                                    imageVector = if (song.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                                    contentDescription = "Favorite",
-                                    tint = if (song.isFavorite) Color.Red else MaterialTheme.colorScheme.onSurface
-                                )
-                            }
+                            Spacer(modifier = Modifier.height(24.dp))
 
-                            IconButton(onClick = { onEditTags(song) }) {
-                                Icon(
-                                    imageVector = Icons.Default.Edit,
-                                    contentDescription = "Edit Tags"
-                                )
+                            // Title, Artist & Tag Edit
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = song.title,
+                                        style = MaterialTheme.typography.titleLarge,
+                                        fontWeight = FontWeight.Bold,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                    Text(
+                                        text = "${song.artist} • ${song.album}",
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+
+                                IconButton(onClick = { onToggleFavorite(song) }) {
+                                    Icon(
+                                        imageVector = if (song.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                                        contentDescription = "Favorite",
+                                        tint = if (song.isFavorite) Color.Red else MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+
+                                if (onAddToPlaylistClick != null) {
+                                    IconButton(onClick = { onAddToPlaylistClick(song) }) {
+                                        Icon(
+                                            imageVector = Icons.Default.PlaylistAdd,
+                                            contentDescription = "Add to Playlist"
+                                        )
+                                    }
+                                }
+
+                                IconButton(onClick = { onEditTags(song) }) {
+                                    Icon(
+                                        imageVector = Icons.Default.Edit,
+                                        contentDescription = "Edit Tags"
+                                    )
+                                }
                             }
                         }
                     }
@@ -239,7 +248,11 @@ fun NowPlayingSheet(
                     horizontalArrangement = Arrangement.SpaceEvenly,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    IconButton(onClick = onToggleShuffle) {
+                    IconButton(onClick = {
+                        onToggleShuffle()
+                        val msg = if (isPersian) playerState.shuffleType.labelFa else playerState.shuffleType.labelEn
+                        Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                    }) {
                         Icon(
                             imageVector = Icons.Default.Shuffle,
                             contentDescription = "Shuffle",

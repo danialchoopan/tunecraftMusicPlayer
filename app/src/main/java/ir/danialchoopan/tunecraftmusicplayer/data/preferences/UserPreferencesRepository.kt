@@ -16,6 +16,8 @@ class UserPreferencesRepository(private val context: Context) {
         val LANGUAGE = stringPreferencesKey("language") // "EN", "FA"
         val FONT_SCALE = floatPreferencesKey("font_scale") // 0.9f, 1.0f, 1.1f, 1.2f
         val ANIMATION_SPEED = floatPreferencesKey("animation_speed") // 0.5f, 1.0f, 1.5f
+        val ANIMATIONS_ENABLED = booleanPreferencesKey("animations_enabled")
+        val ANIMATION_STYLE = stringPreferencesKey("animation_style") // "SPRING", "SLIDE", "FADE", "BOUNCE", "NONE"
         val DOUBLE_TAP_SKIP = booleanPreferencesKey("double_tap_skip")
         val SWIPE_SEEK = booleanPreferencesKey("swipe_seek")
         val SWIPE_VOLUME = booleanPreferencesKey("swipe_volume")
@@ -24,6 +26,9 @@ class UserPreferencesRepository(private val context: Context) {
         val CROSSFADE_SECONDS = intPreferencesKey("crossfade_seconds")
         val REPLAY_GAIN = booleanPreferencesKey("replay_gain")
         val SLEEP_TIMER_MINUTES = intPreferencesKey("sleep_timer_minutes")
+        val HAPTICS_ENABLED = booleanPreferencesKey("haptics_enabled")
+        val KEEP_SCREEN_ON = booleanPreferencesKey("keep_screen_on")
+        val HIGH_CONTRAST = booleanPreferencesKey("high_contrast")
         val EQ_ENABLED = booleanPreferencesKey("eq_enabled")
         val EQ_BANDS = stringPreferencesKey("eq_bands") // "0,0,0,0,0,0,0,0,0,0"
         val EQ_BASS = intPreferencesKey("eq_bass")
@@ -33,11 +38,13 @@ class UserPreferencesRepository(private val context: Context) {
         val LAST_PLAYED_POSITION = longPreferencesKey("last_played_position")
     }
 
-    val themeMode: Flow<String> = context.dataStore.data.map { it[THEME_MODE] ?: "DARK" }
+    val themeMode: Flow<String> = context.dataStore.data.map { it[THEME_MODE] ?: "FOREST" }
     val gradientTheme: Flow<String> = context.dataStore.data.map { it[GRADIENT_THEME] ?: "OCEAN" }
     val language: Flow<String> = context.dataStore.data.map { it[LANGUAGE] ?: "EN" }
     val fontScale: Flow<Float> = context.dataStore.data.map { it[FONT_SCALE] ?: 1.0f }
     val animationSpeed: Flow<Float> = context.dataStore.data.map { it[ANIMATION_SPEED] ?: 1.0f }
+    val animationsEnabled: Flow<Boolean> = context.dataStore.data.map { it[ANIMATIONS_ENABLED] ?: true }
+    val animationStyle: Flow<String> = context.dataStore.data.map { it[ANIMATION_STYLE] ?: "SPRING" }
     val doubleTapSkip: Flow<Boolean> = context.dataStore.data.map { it[DOUBLE_TAP_SKIP] ?: true }
     val swipeSeek: Flow<Boolean> = context.dataStore.data.map { it[SWIPE_SEEK] ?: true }
     val swipeVolume: Flow<Boolean> = context.dataStore.data.map { it[SWIPE_VOLUME] ?: true }
@@ -46,6 +53,9 @@ class UserPreferencesRepository(private val context: Context) {
     val crossfadeSeconds: Flow<Int> = context.dataStore.data.map { it[CROSSFADE_SECONDS] ?: 3 }
     val replayGain: Flow<Boolean> = context.dataStore.data.map { it[REPLAY_GAIN] ?: false }
     val sleepTimerMinutes: Flow<Int> = context.dataStore.data.map { it[SLEEP_TIMER_MINUTES] ?: 0 }
+    val hapticsEnabled: Flow<Boolean> = context.dataStore.data.map { it[HAPTICS_ENABLED] ?: true }
+    val keepScreenOn: Flow<Boolean> = context.dataStore.data.map { it[KEEP_SCREEN_ON] ?: false }
+    val highContrast: Flow<Boolean> = context.dataStore.data.map { it[HIGH_CONTRAST] ?: false }
 
     val eqEnabled: Flow<Boolean> = context.dataStore.data.map { it[EQ_ENABLED] ?: false }
     val eqBands: Flow<String> = context.dataStore.data.map { it[EQ_BANDS] ?: "0,0,0,0,0,0,0,0,0,0" }
@@ -61,6 +71,8 @@ class UserPreferencesRepository(private val context: Context) {
     suspend fun setLanguage(lang: String) { context.dataStore.edit { it[LANGUAGE] = lang } }
     suspend fun setFontScale(scale: Float) { context.dataStore.edit { it[FONT_SCALE] = scale } }
     suspend fun setAnimationSpeed(speed: Float) { context.dataStore.edit { it[ANIMATION_SPEED] = speed } }
+    suspend fun setAnimationsEnabled(enabled: Boolean) { context.dataStore.edit { it[ANIMATIONS_ENABLED] = enabled } }
+    suspend fun setAnimationStyle(style: String) { context.dataStore.edit { it[ANIMATION_STYLE] = style } }
     suspend fun setDoubleTapSkip(enabled: Boolean) { context.dataStore.edit { it[DOUBLE_TAP_SKIP] = enabled } }
     suspend fun setSwipeSeek(enabled: Boolean) { context.dataStore.edit { it[SWIPE_SEEK] = enabled } }
     suspend fun setSwipeVolume(enabled: Boolean) { context.dataStore.edit { it[SWIPE_VOLUME] = enabled } }
@@ -69,6 +81,9 @@ class UserPreferencesRepository(private val context: Context) {
     suspend fun setCrossfadeSeconds(seconds: Int) { context.dataStore.edit { it[CROSSFADE_SECONDS] = seconds } }
     suspend fun setReplayGain(enabled: Boolean) { context.dataStore.edit { it[REPLAY_GAIN] = enabled } }
     suspend fun setSleepTimerMinutes(minutes: Int) { context.dataStore.edit { it[SLEEP_TIMER_MINUTES] = minutes } }
+    suspend fun setHapticsEnabled(enabled: Boolean) { context.dataStore.edit { it[HAPTICS_ENABLED] = enabled } }
+    suspend fun setKeepScreenOn(enabled: Boolean) { context.dataStore.edit { it[KEEP_SCREEN_ON] = enabled } }
+    suspend fun setHighContrast(enabled: Boolean) { context.dataStore.edit { it[HIGH_CONTRAST] = enabled } }
 
     suspend fun setEqEnabled(enabled: Boolean) { context.dataStore.edit { it[EQ_ENABLED] = enabled } }
     suspend fun setEqBands(bands: String) { context.dataStore.edit { it[EQ_BANDS] = bands } }

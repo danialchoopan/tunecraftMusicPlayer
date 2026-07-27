@@ -30,87 +30,106 @@ fun MiniPlayer(
     playerState: PlayerState,
     onPlayPause: () -> Unit,
     onNext: () -> Unit,
+    onPrevious: () -> Unit = {},
     onClick: () -> Unit,
+    isPersian: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val currentSong = playerState.currentSong ?: return
     val context = LocalContext.current
 
-    Surface(
+    val nextSong = if (playerState.currentIndex in 0 until playerState.queue.size - 1) {
+        playerState.queue.getOrNull(playerState.currentIndex + 1)
+    } else playerState.queue.firstOrNull()
+
+    val previousSong = if (playerState.currentIndex > 0) {
+        playerState.queue.getOrNull(playerState.currentIndex - 1)
+    } else playerState.queue.lastOrNull()
+
+    SwipeableTrackContainer(
+        onNext = onNext,
+        onPrevious = onPrevious,
+        nextSong = nextSong,
+        previousSong = previousSong,
+        isPersian = isPersian,
         modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 8.dp, vertical = 4.dp)
-            .clip(RoundedCornerShape(16.dp))
-            .clickable { onClick() },
-        color = MaterialTheme.colorScheme.surfaceVariant,
-        tonalElevation = 6.dp
     ) {
-        Column {
-            // Progress Bar at top of mini player
-            val progress = if (playerState.durationMs > 0) {
-                (playerState.currentPositionMs.toFloat() / playerState.durationMs.toFloat()).coerceIn(0f, 1f)
-            } else 0f
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp, vertical = 4.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .clickable { onClick() },
+            color = MaterialTheme.colorScheme.surfaceVariant,
+            tonalElevation = 6.dp
+        ) {
+            Column {
+                // Progress Bar at top of mini player
+                val progress = if (playerState.durationMs > 0) {
+                    (playerState.currentPositionMs.toFloat() / playerState.durationMs.toFloat()).coerceIn(0f, 1f)
+                } else 0f
 
-            LinearProgressIndicator(
-                progress = { progress },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(3.dp),
-                color = MaterialTheme.colorScheme.primary,
-                trackColor = MaterialTheme.colorScheme.surfaceVariant
-            )
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                AsyncImage(
-                    model = ImageRequest.Builder(context)
-                        .data(if (!currentSong.albumArtUri.isNullOrEmpty()) currentSong.albumArtUri else currentSong.path)
-                        .crossfade(true)
-                        .error(R.drawable.blue_album_placeholder_1785090944004)
-                        .placeholder(R.drawable.blue_album_placeholder_1785090944004)
-                        .build(),
-                    contentDescription = "Album Art",
-                    contentScale = ContentScale.Crop,
+                LinearProgressIndicator(
+                    progress = { progress },
                     modifier = Modifier
-                        .size(48.dp)
-                        .clip(RoundedCornerShape(8.dp))
+                        .fillMaxWidth()
+                        .height(3.dp),
+                    color = MaterialTheme.colorScheme.primary,
+                    trackColor = MaterialTheme.colorScheme.surfaceVariant
                 )
 
-                Spacer(modifier = Modifier.width(12.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    AsyncImage(
+                        model = ImageRequest.Builder(context)
+                            .data(if (!currentSong.albumArtUri.isNullOrEmpty()) currentSong.albumArtUri else currentSong.path)
+                            .crossfade(true)
+                            .error(R.drawable.blue_album_placeholder_1785090944004)
+                            .placeholder(R.drawable.blue_album_placeholder_1785090944004)
+                            .build(),
+                        contentDescription = "Album Art",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .size(48.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                    )
 
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = currentSong.title,
-                        style = MaterialTheme.typography.titleMedium,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = currentSong.artist,
-                        style = MaterialTheme.typography.bodyMedium,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+                    Spacer(modifier = Modifier.width(12.dp))
 
-                IconButton(onClick = onPlayPause) {
-                    Icon(
-                        imageVector = if (playerState.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                        contentDescription = "Play/Pause"
-                    )
-                }
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = currentSong.title,
+                            style = MaterialTheme.typography.titleMedium,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = currentSong.artist,
+                            style = MaterialTheme.typography.bodyMedium,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
 
-                IconButton(onClick = onNext) {
-                    Icon(
-                        imageVector = Icons.Default.SkipNext,
-                        contentDescription = "Next"
-                    )
+                    IconButton(onClick = onPlayPause) {
+                        Icon(
+                            imageVector = if (playerState.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                            contentDescription = "Play/Pause"
+                        )
+                    }
+
+                    IconButton(onClick = onNext) {
+                        Icon(
+                            imageVector = Icons.Default.SkipNext,
+                            contentDescription = "Next"
+                        )
+                    }
                 }
             }
         }

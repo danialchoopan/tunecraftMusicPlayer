@@ -1,11 +1,13 @@
 package ir.danialchoopan.tunecraftmusicplayer.ui.screens
 
 import android.widget.Toast
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Animation
 import androidx.compose.material.icons.filled.Backup
 import androidx.compose.material.icons.filled.CarRental
 import androidx.compose.material.icons.filled.Language
@@ -37,6 +39,13 @@ fun SettingsScreen(
     val swipeSeek by preferencesRepository.swipeSeek.collectAsState(initial = true)
     val swipeVolume by preferencesRepository.swipeVolume.collectAsState(initial = true)
     val carMode by preferencesRepository.carMode.collectAsState(initial = false)
+    val fontScale by preferencesRepository.fontScale.collectAsState(initial = 1.0f)
+    val animationSpeed by preferencesRepository.animationSpeed.collectAsState(initial = 1.0f)
+    val animationsEnabled by preferencesRepository.animationsEnabled.collectAsState(initial = true)
+    val animationStyle by preferencesRepository.animationStyle.collectAsState(initial = "SPRING")
+    val hapticsEnabled by preferencesRepository.hapticsEnabled.collectAsState(initial = true)
+    val keepScreenOn by preferencesRepository.keepScreenOn.collectAsState(initial = false)
+    val highContrast by preferencesRepository.highContrast.collectAsState(initial = false)
 
     Column(
         modifier = Modifier
@@ -214,6 +223,167 @@ fun SettingsScreen(
                     Switch(
                         checked = carMode,
                         onCheckedChange = { coroutineScope.launch { preferencesRepository.setCarMode(it) } }
+                    )
+                }
+            }
+        }
+
+        // Animation & Visual Styles Section
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+            shape = RoundedCornerShape(16.dp)
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(imageVector = Icons.Default.Animation, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = if (isPersian) "انیمیشن‌ها و افکت‌های بصری" else "Animations & Motion Styles",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = if (isPersian) "فعال بودن انیمیشن‌ها" else "Enable Animations",
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Switch(
+                        checked = animationsEnabled,
+                        onCheckedChange = { coroutineScope.launch { preferencesRepository.setAnimationsEnabled(it) } }
+                    )
+                }
+
+                if (animationsEnabled) {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        text = if (isPersian) "سبک و افکت انیمیشن:" else "Animation Motion Style:",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    val styles = listOf(
+                        Triple("SPRING", "فنری و پویا", "Dynamic Spring"),
+                        Triple("SLIDE", "کشویی و روان", "Smooth Slide"),
+                        Triple("FADE", "محو شدن نرم", "Soft Fade"),
+                        Triple("BOUNCE", "جهشی", "Bounce Accent"),
+                        Triple("NONE", "خاموش / آنی", "Instant (No Motion)")
+                    )
+
+                    styles.forEach { (styleKey, nameFa, nameEn) ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { coroutineScope.launch { preferencesRepository.setAnimationStyle(styleKey) } }
+                                .padding(vertical = 4.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = if (isPersian) nameFa else nameEn,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = if (animationStyle == styleKey) FontWeight.Bold else FontWeight.Normal
+                            )
+                            RadioButton(
+                                selected = animationStyle == styleKey,
+                                onClick = { coroutineScope.launch { preferencesRepository.setAnimationStyle(styleKey) } }
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Text(
+                        text = if (isPersian) "سرعت انیمیشن: ${String.format("%.1fx", animationSpeed)}" else "Animation Speed: ${String.format("%.1fx", animationSpeed)}",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Slider(
+                        value = animationSpeed,
+                        onValueChange = { coroutineScope.launch { preferencesRepository.setAnimationSpeed(it) } },
+                        valueRange = 0.5f..2.0f,
+                        steps = 5,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+        }
+
+        // Accessibility & Persistent Preferences
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+            shape = RoundedCornerShape(16.dp)
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(imageVector = Icons.Default.Palette, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = if (isPersian) "دسترس‌پذیری و قابلیت‌ها" else "Accessibility & Options",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Text(
+                    text = if (isPersian) "اندازه فونت و متن: ${(fontScale * 100).toInt()}%" else "Font Scale: ${(fontScale * 100).toInt()}%",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Slider(
+                    value = fontScale,
+                    onValueChange = { coroutineScope.launch { preferencesRepository.setFontScale(it) } },
+                    valueRange = 0.8f..1.4f,
+                    steps = 5,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(text = if (isPersian) "بازخورد لرزشی (Haptic)" else "Haptic Feedback")
+                    Switch(
+                        checked = hapticsEnabled,
+                        onCheckedChange = { coroutineScope.launch { preferencesRepository.setHapticsEnabled(it) } }
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(text = if (isPersian) "روشن ماندن صفحه هنگام پخش" else "Keep Screen On")
+                    Switch(
+                        checked = keepScreenOn,
+                        onCheckedChange = { coroutineScope.launch { preferencesRepository.setKeepScreenOn(it) } }
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(text = if (isPersian) "کنتراست بالای متون" else "High Contrast Text")
+                    Switch(
+                        checked = highContrast,
+                        onCheckedChange = { coroutineScope.launch { preferencesRepository.setHighContrast(it) } }
                     )
                 }
             }

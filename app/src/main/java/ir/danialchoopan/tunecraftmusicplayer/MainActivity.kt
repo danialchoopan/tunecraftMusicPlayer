@@ -44,6 +44,7 @@ import ir.danialchoopan.tunecraftmusicplayer.ui.components.MiniPlayer
 import ir.danialchoopan.tunecraftmusicplayer.ui.components.NowPlayingSheet
 import ir.danialchoopan.tunecraftmusicplayer.ui.components.TagEditDialog
 import ir.danialchoopan.tunecraftmusicplayer.ui.components.AddToPlaylistDialog
+import ir.danialchoopan.tunecraftmusicplayer.ui.components.AudioTrimmerDialog
 import ir.danialchoopan.tunecraftmusicplayer.ui.navigation.Screen
 import ir.danialchoopan.tunecraftmusicplayer.ui.screens.*
 import ir.danialchoopan.tunecraftmusicplayer.ui.theme.TuneCraftTheme
@@ -60,7 +61,9 @@ class MainActivity : ComponentActivity() {
         val repository = app.musicRepository
         val preferences = app.preferencesRepository
 
-        // Start Media Service
+        // راه‌اندازی سرویس پخش رسانه (MediaSessionService)
+        // برای سرویس‌های Media3 استفاده از startService کافی است چون خود فریم‌ورک هنگام شروع پخش، سرویس را به Foreground ارتقا می‌دهد
+        // این تغییر مانع بروز خطای RemoteServiceException$ForegroundServiceDidNotStartInTimeException در اندروید‌های جدید می‌شود
         try {
             val serviceIntent = Intent(this, TuneCraftMediaService::class.java)
             startService(serviceIntent)
@@ -76,7 +79,7 @@ class MainActivity : ComponentActivity() {
             val fontScale by preferences.fontScale.collectAsState(initial = 1.0f)
             val isPersian = language == "FA"
 
-            val permissionsToRequest = remember {
+            val audioPermission = remember {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                     arrayOf(
                         Manifest.permission.READ_MEDIA_AUDIO,
@@ -89,17 +92,18 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
-            val audioPermission = permissionsToRequest
-
             var hasAudioPermission by remember {
                 val audioPerm = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                     Manifest.permission.READ_MEDIA_AUDIO
                 } else {
                     Manifest.permission.READ_EXTERNAL_STORAGE
                 }
-                mutableStateOf(
-                    ContextCompat.checkSelfPermission(this@MainActivity, audioPerm) == PackageManager.PERMISSION_GRANTED
-                )
+                val audioGranted = ContextCompat.checkSelfPermission(this@MainActivity, audioPerm) == PackageManager.PERMISSION_GRANTED
+                val notifGranted = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+                } else true
+
+                mutableStateOf(audioGranted && notifGranted)
             }
 
             val permissionLauncher = rememberLauncherForActivityResult(
@@ -107,30 +111,45 @@ class MainActivity : ComponentActivity() {
             ) { perms ->
                 val audioGranted = perms[Manifest.permission.READ_MEDIA_AUDIO] == true ||
                         perms[Manifest.permission.READ_EXTERNAL_STORAGE] == true
-                hasAudioPermission = audioGranted
+                val notifGranted = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    perms[Manifest.permission.POST_NOTIFICATIONS] == true
+                } else true
+
+                hasAudioPermission = audioGranted && notifGranted
                 if (audioGranted) {
                     lifecycleScope.launch {
                         repository.scanLocalMedia()
                     }
                     Toast.makeText(
                         this@MainActivity,
-                        if (isPersian) "دسترسی تایید شد. در حال اسکن موزیک‌ها..." else "Permission granted. Scanning audio files...",
+                        if (isPersian) "دسترسی‌ها تایید شد. در حال اسکن موزیک‌ها..." else "Permissions granted. Scanning audio files...",
                         Toast.LENGTH_SHORT
                     ).show()
                 } else {
                     Toast.makeText(
                         this@MainActivity,
-                        if (isPersian) "اجازه دسترسی داده نشد" else "Permissions denied",
+                        if (isPersian) "اجازه دسترسی به فایل‌ها داده نشد" else "Storage permission denied",
                         Toast.LENGTH_LONG
                     ).show()
                 }
             }
 
-            LaunchedEffect(hasAudioPermission) {
-                if (hasAudioPermission) {
-                    repository.scanLocalMedia()
+            LaunchedEffect(Unit) {
+                val audioPerm = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    Manifest.permission.READ_MEDIA_AUDIO
                 } else {
-                    permissionLauncher.launch(permissionsToRequest)
+                    Manifest.permission.READ_EXTERNAL_STORAGE
+                }
+                val audioGranted = ContextCompat.checkSelfPermission(this@MainActivity, audioPerm) == PackageManager.PERMISSION_GRANTED
+                val notifGranted = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+                } else true
+
+                if (audioGranted) {
+                    repository.scanLocalMedia()
+                }
+                if (!audioGranted || !notifGranted) {
+                    permissionLauncher.launch(audioPermission)
                 }
             }
 
@@ -156,12 +175,14 @@ class MainActivity : ComponentActivity() {
                     val longestSongs by repository.longestSongs.collectAsStateWithLifecycle(initialValue = emptyList())
                     val shortestSongs by repository.shortestSongs.collectAsStateWithLifecycle(initialValue = emptyList())
                     val customPresets by repository.equalizerPresets.collectAsStateWithLifecycle(initialValue = emptyList())
+                    val isScanning by repository.isScanning.collectAsStateWithLifecycle(initialValue = false)
 
                     val playerState by TuneCraftMediaService.playerState.collectAsStateWithLifecycle(initialValue = PlayerState())
 
                     var showNowPlayingSheet by remember { mutableStateOf(false) }
                     var songToEditTags by remember { mutableStateOf<SongEntity?>(null) }
                     var songToAddToPlaylist by remember { mutableStateOf<SongEntity?>(null) }
+                    var songToTrim by remember { mutableStateOf<SongEntity?>(null) }
 
                     val mediaService = TuneCraftMediaService.instance
 
@@ -430,6 +451,7 @@ class MainActivity : ComponentActivity() {
                                                 playlists = playlists,
                                                 isPersian = isPersian,
                                                 hasAudioPermission = hasAudioPermission,
+                                                isScanning = isScanning,
                                                 onRequestPermission = { permissionLauncher.launch(audioPermission) },
                                                 onSongClick = { list, idx -> mediaService?.playSongs(list, idx) },
                                                 onRescanMedia = {
@@ -578,6 +600,7 @@ class MainActivity : ComponentActivity() {
                             onSetSleepTimer = { mins -> mediaService?.startSleepTimer(mins) },
                             onEditTags = { songToEditTags = it },
                             onAddToPlaylistClick = { songToAddToPlaylist = it },
+                            onTrimAudioClick = { songToTrim = it },
                             customPresets = customPresets,
                             onSaveCustomPreset = { name, bandLevels, bassBoost, virtualizer, balance ->
                                 lifecycleScope.launch {
@@ -622,6 +645,14 @@ class MainActivity : ComponentActivity() {
                                     Toast.makeText(this@MainActivity, "Metadata Saved!", Toast.LENGTH_SHORT).show()
                                 }
                             }
+                        )
+                    }
+
+                    songToTrim?.let { song ->
+                        AudioTrimmerDialog(
+                            song = song,
+                            isPersian = isPersian,
+                            onDismiss = { songToTrim = null }
                         )
                     }
                 }

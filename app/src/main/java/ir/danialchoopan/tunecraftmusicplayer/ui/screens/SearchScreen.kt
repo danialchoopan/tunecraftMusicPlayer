@@ -107,7 +107,7 @@ fun SearchScreen(
         Spacer(modifier = Modifier.height(8.dp))
 
         LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            items(filteredSongs) { song ->
+            items(filteredSongs, key = { it.id }) { song ->
                 SongListItem(
                     song = song,
                     onClick = {

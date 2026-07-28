@@ -142,6 +142,91 @@ private val NordicColorScheme = lightColorScheme(
     onSurfaceVariant = NordicOnBackground
 )
 
+private val CyberpunkColorScheme = darkColorScheme(
+    primary = CyberpunkPrimary,
+    onPrimary = androidx.compose.ui.graphics.Color.White,
+    primaryContainer = CyberpunkSurfaceVariant,
+    onPrimaryContainer = CyberpunkOnBackground,
+    secondary = CyberpunkSecondary,
+    onSecondary = androidx.compose.ui.graphics.Color.Black,
+    secondaryContainer = CyberpunkSurface,
+    onSecondaryContainer = CyberpunkOnBackground,
+    background = CyberpunkBackground,
+    surface = CyberpunkSurface,
+    surfaceVariant = CyberpunkSurfaceVariant,
+    onBackground = CyberpunkOnBackground,
+    onSurface = CyberpunkOnBackground,
+    onSurfaceVariant = CyberpunkOnBackground
+)
+
+private val GoldColorScheme = darkColorScheme(
+    primary = GoldPrimary,
+    onPrimary = androidx.compose.ui.graphics.Color.Black,
+    primaryContainer = GoldSurfaceVariant,
+    onPrimaryContainer = GoldOnBackground,
+    secondary = GoldSecondary,
+    onSecondary = androidx.compose.ui.graphics.Color.Black,
+    secondaryContainer = GoldSurface,
+    onSecondaryContainer = GoldOnBackground,
+    background = GoldBackground,
+    surface = GoldSurface,
+    surfaceVariant = GoldSurfaceVariant,
+    onBackground = GoldOnBackground,
+    onSurface = GoldOnBackground,
+    onSurfaceVariant = GoldOnBackground
+)
+
+private val LavaColorScheme = darkColorScheme(
+    primary = LavaPrimary,
+    onPrimary = androidx.compose.ui.graphics.Color.White,
+    primaryContainer = LavaSurfaceVariant,
+    onPrimaryContainer = LavaOnBackground,
+    secondary = LavaSecondary,
+    onSecondary = androidx.compose.ui.graphics.Color.Black,
+    secondaryContainer = LavaSurface,
+    onSecondaryContainer = LavaOnBackground,
+    background = LavaBackground,
+    surface = LavaSurface,
+    surfaceVariant = LavaSurfaceVariant,
+    onBackground = LavaOnBackground,
+    onSurface = LavaOnBackground,
+    onSurfaceVariant = LavaOnBackground
+)
+
+private val SakuraColorScheme = lightColorScheme(
+    primary = SakuraPrimary,
+    onPrimary = androidx.compose.ui.graphics.Color.White,
+    primaryContainer = SakuraSurfaceVariant,
+    onPrimaryContainer = SakuraOnBackground,
+    secondary = SakuraSecondary,
+    onSecondary = androidx.compose.ui.graphics.Color.White,
+    secondaryContainer = SakuraSurface,
+    onSecondaryContainer = SakuraOnBackground,
+    background = SakuraBackground,
+    surface = SakuraSurface,
+    surfaceVariant = SakuraSurfaceVariant,
+    onBackground = SakuraOnBackground,
+    onSurface = SakuraOnBackground,
+    onSurfaceVariant = SakuraOnBackground
+)
+
+private val MintColorScheme = lightColorScheme(
+    primary = MintPrimary,
+    onPrimary = androidx.compose.ui.graphics.Color.White,
+    primaryContainer = MintSurfaceVariant,
+    onPrimaryContainer = MintOnBackground,
+    secondary = MintSecondary,
+    onSecondary = androidx.compose.ui.graphics.Color.White,
+    secondaryContainer = MintSurface,
+    onSecondaryContainer = MintOnBackground,
+    background = MintBackground,
+    surface = MintSurface,
+    surfaceVariant = MintSurfaceVariant,
+    onBackground = MintOnBackground,
+    onSurface = MintOnBackground,
+    onSurfaceVariant = MintOnBackground
+)
+
 @Composable
 fun TuneCraftTheme(
     themeMode: String = "FOREST",
@@ -159,6 +244,11 @@ fun TuneCraftTheme(
         "WARM_PEACH", "LIGHT" -> WarmPeachColorScheme
         "NORDIC" -> NordicColorScheme
         "DARK_VIOLET", "CYBER" -> DarkVioletColorScheme
+        "CYBERPUNK", "SYNTHWAVE" -> CyberpunkColorScheme
+        "GOLD", "ROYAL_GOLD" -> GoldColorScheme
+        "LAVA", "CRIMSON" -> LavaColorScheme
+        "SAKURA", "LAVENDER" -> SakuraColorScheme
+        "MINT", "SAGE" -> MintColorScheme
         "SYSTEM" -> if (isSystemDark) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) dynamicDarkColorScheme(context) else ForestColorScheme
         } else {

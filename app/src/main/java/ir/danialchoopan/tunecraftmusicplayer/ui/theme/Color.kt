@@ -66,3 +66,43 @@ val NordicPrimary = Color(0xFF0284C7)
 val NordicSecondary = Color(0xFF0D9488)
 val NordicOnBackground = Color(0xFF0F172A)
 
+// --- Cyberpunk Neon (Dark Synthwave) ---
+val CyberpunkBackground = Color(0xFF120B2A)
+val CyberpunkSurface = Color(0xFF1A103C)
+val CyberpunkSurfaceVariant = Color(0xFF261952)
+val CyberpunkPrimary = Color(0xFFFF007F)
+val CyberpunkSecondary = Color(0xFF00F0FF)
+val CyberpunkOnBackground = Color(0xFFF5E6FF)
+
+// --- Royal Gold (Luxury Dark) ---
+val GoldBackground = Color(0xFF12100E)
+val GoldSurface = Color(0xFF1E1A16)
+val GoldSurfaceVariant = Color(0xFF2C2620)
+val GoldPrimary = Color(0xFFFFD700)
+val GoldSecondary = Color(0xFFFFA500)
+val GoldOnBackground = Color(0xFFFFFDF5)
+
+// --- Lava Crimson (Fiery Dark) ---
+val LavaBackground = Color(0xFF180A0A)
+val LavaSurface = Color(0xFF261010)
+val LavaSurfaceVariant = Color(0xFF3A1818)
+val LavaPrimary = Color(0xFFFF3333)
+val LavaSecondary = Color(0xFFFF6600)
+val LavaOnBackground = Color(0xFFFFF0F0)
+
+// --- Sakura Blossom (Soft Light) ---
+val SakuraBackground = Color(0xFFFFF0F5)
+val SakuraSurface = Color(0xFFFFE4E1)
+val SakuraSurfaceVariant = Color(0xFFFFD1DC)
+val SakuraPrimary = Color(0xFFE91E63)
+val SakuraSecondary = Color(0xFFBA68C8)
+val SakuraOnBackground = Color(0xFF2D1A24)
+
+// --- Mint Breeze (Fresh Light) ---
+val MintBackground = Color(0xFFF0FDF4)
+val MintSurface = Color(0xFFDCFCE7)
+val MintSurfaceVariant = Color(0xFFBBF7D0)
+val MintPrimary = Color(0xFF059669)
+val MintSecondary = Color(0xFF0D9488)
+val MintOnBackground = Color(0xFF064E3B)
+

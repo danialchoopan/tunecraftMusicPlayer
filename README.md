@@ -5,13 +5,32 @@
 </p>
 
 <p align="center">
-  <b>یک موزیک پلیر مدرن، قدرتمند و هوشمند اختصاصی اندروید با پشتیبانی کامل از زبان فارسی و انگلیسی</b><br>
-  <i>A modern, powerful & feature-packed Android Music Player built with Jetpack Compose & Clean Architecture.</i>
+  <b>یک موزیک پلیر مدرن، قدرتمند، هوشمند و فوق‌العاده سریع اختصاصی اندروید با پشتیبانی کامل از زبان فارسی و انگلیسی</b><br>
+  <i>A modern, ultra-fast & feature-packed Android Music Player built with Jetpack Compose & Clean Architecture.</i>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Android-SDK%2034%2B-brightgreen.svg" alt="Android SDK" />
+  <img src="https://img.shields.io/badge/Language-Kotlin%20100%25-blue.svg" alt="Kotlin" />
+  <img src="https://img.shields.io/badge/UI-Jetpack%20Compose%20M3-purple.svg" alt="Jetpack Compose" />
+  <img src="https://img.shields.io/badge/CI%2FCD-GitHub%20Actions-orange.svg" alt="GitHub Actions" />
 </p>
 
 ---
 
-## 🌟 ویژگی‌های کلیدی | Key Features
+## 🌟 ویژگی‌های کلیدی و بهینه‌سازی‌ها | Key Features & Optimizations
+
+### ⚡ بهینه‌سازی کارایی و سرعت (High Performance & Smooth Scrolling)
+* **رابط کاربری بدون لگ (Zero Lag Library)**: بازطراحی کامل لیست کتابخانه با کلیدهای یکتا و پایدار (`key = { it.id }`) جهت پیمایش فوق‌العاده روان حتی در کتابخانه‌های با هزاران آهنگ.
+* **ترتیب پیش‌فرض جدیدترین‌ها (Recently Added Default)**: نمایش خودکار آهنگ‌های اخیراً اضافه شده در بالای کتابخانه به‌جای ترتیب الفبایی.
+* **نشانگر بارگذاری و اسکن حافظه (Scan Loading Indicators)**: نمایش لودینگ و نوار پیشرفت زنده هنگام باز شدن برنامه و اسکن فایل‌های صوتی حافظه.
+
+### 📱 پشتیبانی کامل از تبلت‌ها و مانیتورهای خودرو (Tablet & Car Screen Responsive Layout)
+* **طراحی واکنش‌گرا (Adaptive UI)**: چیدمان شبکه‌ای (Grid View) ۲ ستونه در صفحات عریض (`> 600dp`) ویژه تبلت‌ها، مانیتورهای خودرو (Car Head Units) و گوشی‌های تاشو.
+* **سازگاری کامل با سیستم صوتی و مانیتور خودرو**: دکمه‌های کنترل بزرگ و خوانا با کنتراست بالا برای استفاده راحت هنگام رانندگی.
+
+### 🔤 تایپوگرافی اختصاصی و فونت وزیرمتن (Vazirmatn Persian Typography)
+* **فونت وزیرمتن فارسی (Vazirmatn Font)**: استفاده مستقیم از فونت زیبای وزیرمتن در تمامی وزن‌ها (Normal, Medium, SemiBold, Bold) جهت نمایش استاندارد و چشم‌نواز متون فارسی.
 
 ### 🧠 شفل هوشمند و الگوریتم‌های هوش مصنوعی (Smart AI Shuffle)
 * **Smart Shuffle**: پخش هوشمند ترانه‌ها بر اساس زمان روز (صبح، عصر، شب)، میزان استقبال شما از آهنگ‌ها و الگوی اخیر.
@@ -23,69 +42,29 @@
 * **ژست‌های حرکتی سریع (Swipe Gestures)**: تعویض آهنگ با کشیدن انگشت روی کارت پخش به سمت چپ یا راست.
 * **کنتراست بالای شب (AMOLED Night Vision)**: تم تاریک خالص با کنتراست فوق‌العاده بالا برای عدم ایجاد چشم‌زدگی در تاریکی خودرو.
 * **بیس بوستر سریع رانندگی (⚡ Drive Bass Boost)**: فعال‌سازی بیس قوی سیستم صوتی خودرو تنها با یک لمس.
-* **لیست‌های پخش سریع رانندگی**: دسترسی آنی به محبوب‌ترین‌ها، شنیده‌های اخیر و پخش تصادفی کلیه فایل‌ها.
 
 ### 🎨 انیمیشن‌ها و تم‌های بصری قابل شخصی‌سازی (Customizable Animations & Themes)
-* **کنترل سبک انیمیشن (Animation Motion Styles)**:
-  * **Dynamic Spring**: انیمیشن‌های پویا و فنری روان.
-  * **Smooth Slide**: حرکت کشویی کلاسیک و ملایم.
-  * **Soft Fade**: محو شدن نرم عناصر.
-  * **Bounce Accent**: افکت‌های جهشی جذاب.
-  * **Instant (No Motion)**: خاموش کردن انیمیشن‌ها جهت بالاترین سرعت ممکن برای گوشی‌های قدیمی‌تر.
-* **کنترل سرعت انیمیشن‌ها**: امکان تنظیم سرعت افکت‌های بصری از ۰.۵x تا ۲.۰x.
-* **۹ پوسته و تم رنگی خیره‌کننده**:
-  * بنفش نئونی (Dark Violet)
-  * کهربایی و غروب (Sunset Amber)
-  * زمردی و جنگل (Emerald Forest)
-  * آبی اقیانوسی (Ocean Sapphire)
-  * رز و شرابی (Rose Velvet)
-  * مشکی خالص (AMOLED Pitch Black)
-  * هلویی گرم و روشن (Warm Peach)
-  * خاکستری نوردیک (Nordic Slate)
-  * تم پویای اندروید (System Material You)
+* **کنترل سبک انیمیشن (Animation Motion Styles)**: Dynamic Spring, Smooth Slide, Soft Fade, Bounce Accent و حالت خاموش (Instant) برای دستگاه‌های قدیمی‌تر.
+* **۹ پوسته و تم رنگی خیره‌کننده**: بنفش نئونی، کهربایی، زمردی، آبی اقیانوسی، رز و شرابی، مشکی خالص (AMOLED)، هلویی، خاکستری نوردیک و تم پویای اندروید (Material You).
 
 ### 🎛️ اکولایزر ۱۰ بانده و افکت‌های صوتی DSP (10-Band Equalizer & Audio FX)
-* **تنظیمات دقیق فرکانسی**: اکولایزر ۱۰ بانده حرفه‌ای با پیش‌فرض‌های سبک‌های مختلف (Pop, Rock, Bass, Jazz, Classical و غیره).
-* **افزایش دهنده بیس (Bass Boost)** & **افکت سه بعدی (3D Virtualizer)**.
-* **تنظیم بالانس باند چپ و راست (Stereo Balance Control)**.
+* **تنظیمات دقیق فرکانسی**: اکولایزر ۱۰ بانده حرفه‌ای با پیش‌فرض‌های سبک‌های مختلف همراه با Bass Boost و 3D Virtualizer.
 
-### 🌐 پشتیبانی کامل دو زبانه و RTL (Full Bilingual FA/EN & RTL Support)
-* **پشتیبانی کامل از زبان فارسی و انگلیسی**: تغییر زبان آنی در تنظیمات برنامه بدون نیاز به ریستارت.
-* **چیدمان راست به چپ (RTL Layout)**: انطباق کامل با استاندارد زبان‌های فارسی و عربی.
-
-### 🏷️ ویرایشگر برچسب و کاور فایل‌ها (ID3 Tag Editor & Cover Manager)
-* **تغییر اطلاعات فایل صوتی**: ویرایش نام ترانه، نام خواننده، آلبوم و سال انتشار.
-* **انتخاب کاور دلخواه**: قابلیت بروزرسانی کاور آلبوم با تصویر دلخواه از گالری.
-
-### 📁 مرور پوشه‌ای و مدیریت لیست‌های پخش (Folder Browser & Playlists)
-* **مرور بر اساس پوشه‌ها**: دسترسی مستقیم به تمام پوشه‌های موسیقی ذخیره شده در حافظه دستگاه.
-* **لیست‌های پخش اختصاصی**: ساخت، ویرایش و مدیریت آسان لیست‌های پخش سفارشی.
-* **محبوب‌ترین‌ها و تاریخچه**: افزودن سریع ترانه‌ها به لیست علاقمندی‌ها و مشاهده لیست آهنگ‌های اخیراً پخش‌شده.
-
-### 💾 پشتیبان‌گیری محلی (Local JSON Backup & Restore)
-* **خروجی گرفتن و بازیابی**: قابلیت ذخیره تمامی لیست‌های پخش و تنظیمات در قالب فایل JSON جهت انتقال به دستگاه‌های دیگر.
+### ⚙️ گردش کاری هوشمند GitHub Actions (CI/CD Pipeline)
+* **ساخت خودکار برنامه (Automated Build Workflow)**: اکشن اختصاصی GitHub Actions برای کامپایل، تست و خروجی گرفتن خودکار فایل‌های Debug APK, Release APKs و Android App Bundle (AAB) در هر Push و Pull Request.
 
 ---
 
 ## 🛠️ معماری و تکنولوژی‌ها | Tech Stack & Architecture
 
 * **زبان برنامه نویسی**: 100% Kotlin
-* **رابط کاربری (UI)**: Jetpack Compose + Material Design 3 (M3)
+* **رابط کاربری (UI)**: Jetpack Compose + Material Design 3 (M3) Adaptive
+* **تایپوگرافی**: Vazirmatn Custom Font
 * **داده‌های محلی (Database)**: Room Database (KSP)
 * **تنظیمات برنامه (Preferences)**: Jetpack DataStore Preferences
 * **سرویس پخش صدا (Audio Engine)**: Media3 / ExoPlayer + AudioEffect DSP Pipeline
 * **معماری نرم‌افزار**: MVVM + Clean Architecture + StateFlow & Coroutines
-* **تست**: Robolectric / Unit Testing Support
-
----
-
-## 📸 نمای کلی صفحات برنامه | App Screenshots & Overview
-
-* **صفحه اصلی (Home Screen)**: نمایش ترانه‌های برتر، کارت‌های هوشمند شفل، آلبوم‌ها و خوانندگان.
-* **پخش‌کننده شناور و کامل (Now Playing Sheet & Mini Player)**: کنترل کامل موزیک، نمایش کاور شفاف، اکولایزر سریع و متن ترانه.
-* **حالت رانندگی (Car Mode Screen)**: رابط کاربری ویژه با دکمه‌های شست‌رس و خوانایی بالا.
-* **اکولایزر اختصاصی (Equalizer Screen)**: اسلایدرهای فرکانسی ۱۰ بانده همراه با بیس بوستر و بالانس استریو.
-* **تنظیمات (Settings Screen)**: انتخاب تم، شخصی‌سازی انیمیشن‌ها، زبان و پشتیبان‌گیری.
+* **اتوماسیون و CI/CD**: GitHub Actions (JDK 17 + Gradle setup)
 
 ---
 
@@ -103,7 +82,7 @@
    ```
 2. پروژه را در **Android Studio** باز کنید.
 3. اجازه دهید Gradle Sync کامل انجام شود.
-4. پروژه را روی دستگاه واقعی یا شبیه‌ساز (Emulator) اجرا نمائید:
+4. پروژه را روی دستگاه واقعی، تبلت یا شبیه‌ساز (Emulator) اجرا نمائید:
    ```bash
    ./gradlew assembleDebug
    ```
@@ -114,3 +93,4 @@
 
 توسعه داده شده توسط **دانیال چوپان** (Danial Choopan).
 طراحی شده با عشق برای تجربه عالی شنیدن موسیقی! ❤️
+

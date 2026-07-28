@@ -89,11 +89,16 @@ fun SettingsScreen(
 
                 val themes = listOf(
                     ThemeOption("DARK", "بنفش نئونی", "Dark Neon Violet", ir.danialchoopan.tunecraftmusicplayer.ui.theme.DarkVioletPrimary, ir.danialchoopan.tunecraftmusicplayer.ui.theme.DarkVioletBackground),
+                    ThemeOption("CYBERPUNK", "سایبرپانک و سنت‌ویو", "Cyberpunk Synthwave", ir.danialchoopan.tunecraftmusicplayer.ui.theme.CyberpunkPrimary, ir.danialchoopan.tunecraftmusicplayer.ui.theme.CyberpunkBackground),
+                    ThemeOption("GOLD", "طلایی سلطنتی", "Royal Gold", ir.danialchoopan.tunecraftmusicplayer.ui.theme.GoldPrimary, ir.danialchoopan.tunecraftmusicplayer.ui.theme.GoldBackground),
+                    ThemeOption("LAVA", "گدازه و آتشین", "Crimson Lava", ir.danialchoopan.tunecraftmusicplayer.ui.theme.LavaPrimary, ir.danialchoopan.tunecraftmusicplayer.ui.theme.LavaBackground),
                     ThemeOption("SUNSET", "کهربایی و غروب", "Sunset Amber", ir.danialchoopan.tunecraftmusicplayer.ui.theme.SunsetPrimary, ir.danialchoopan.tunecraftmusicplayer.ui.theme.SunsetBackground),
                     ThemeOption("FOREST", "زمردی و جنگل", "Emerald Forest", ir.danialchoopan.tunecraftmusicplayer.ui.theme.ForestPrimary, ir.danialchoopan.tunecraftmusicplayer.ui.theme.ForestBackground),
                     ThemeOption("OCEAN", "آبی اقیانوسی", "Ocean Sapphire", ir.danialchoopan.tunecraftmusicplayer.ui.theme.OceanPrimary, ir.danialchoopan.tunecraftmusicplayer.ui.theme.OceanBackground),
-                    ThemeOption("ROSE", "رز و شرابی", "Rose Velvet", ir.danialchoopan.tunecraftmusicplayer.ui.theme.RosePrimary, ir.danialchoopan.tunecraftmusicplayer.ui.theme.RoseBackground),
+                    ThemeOption("ROSE", "رز و مخملی", "Rose Velvet", ir.danialchoopan.tunecraftmusicplayer.ui.theme.RosePrimary, ir.danialchoopan.tunecraftmusicplayer.ui.theme.RoseBackground),
                     ThemeOption("AMOLED", "مشکی خالص AMOLED", "AMOLED Pitch Black", ir.danialchoopan.tunecraftmusicplayer.ui.theme.AmoledPrimary, ir.danialchoopan.tunecraftmusicplayer.ui.theme.AmoledBackground),
+                    ThemeOption("SAKURA", "شکوفه گیلاس (روشن)", "Sakura Blossom", ir.danialchoopan.tunecraftmusicplayer.ui.theme.SakuraPrimary, ir.danialchoopan.tunecraftmusicplayer.ui.theme.SakuraBackground),
+                    ThemeOption("MINT", "نعناعی و مریم‌گلی (روشن)", "Mint Breeze", ir.danialchoopan.tunecraftmusicplayer.ui.theme.MintPrimary, ir.danialchoopan.tunecraftmusicplayer.ui.theme.MintBackground),
                     ThemeOption("WARM_PEACH", "هلویی گرم (روشن)", "Warm Peach & Cream", ir.danialchoopan.tunecraftmusicplayer.ui.theme.WarmPeachPrimary, ir.danialchoopan.tunecraftmusicplayer.ui.theme.WarmPeachBackground),
                     ThemeOption("NORDIC", "خاکستری نوردیک (روشن)", "Nordic Slate", ir.danialchoopan.tunecraftmusicplayer.ui.theme.NordicPrimary, ir.danialchoopan.tunecraftmusicplayer.ui.theme.NordicBackground),
                     ThemeOption("SYSTEM", "پویای سیستم (Material You)", "System Material You", MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.background)

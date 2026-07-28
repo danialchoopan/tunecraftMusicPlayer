@@ -335,7 +335,7 @@ fun HomeScreen(
                     )
                     Spacer(modifier = Modifier.height(12.dp))
                     LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        items(recentlyPlayed) { song ->
+                        items(recentlyPlayed, key = { it.id }) { song ->
                             SongCard(
                                 song = song,
                                 onClick = {
@@ -367,7 +367,7 @@ fun HomeScreen(
             }
         }
 
-        items(allSongs.take(5)) { song ->
+        items(allSongs.take(5), key = { it.id }) { song ->
             SongListItem(
                 song = song,
                 onClick = {
@@ -477,7 +477,7 @@ fun SongListItem(
         ) {
             AsyncImage(
                 model = ImageRequest.Builder(context)
-                    .data(if (!song.albumArtUri.isNullOrEmpty()) song.albumArtUri else song.path)
+                    .data(if (!song.albumArtUri.isNullOrEmpty()) song.albumArtUri else R.drawable.blue_album_placeholder_1785090944004)
                     .crossfade(true)
                     .error(R.drawable.blue_album_placeholder_1785090944004)
                     .placeholder(R.drawable.blue_album_placeholder_1785090944004)

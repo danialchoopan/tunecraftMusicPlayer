@@ -9,6 +9,9 @@ import ir.danialchoopan.tunecraftmusicplayer.data.local.entity.*
 import ir.danialchoopan.tunecraftmusicplayer.data.preferences.UserPreferencesRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
@@ -61,107 +64,136 @@ class MusicRepository(
     val longestSongs: Flow<List<SongEntity>> = songDao.getLongestSongs()
     val shortestSongs: Flow<List<SongEntity>> = songDao.getShortestSongs()
 
+    private val _isScanning = MutableStateFlow(false)
+    val isScanning: StateFlow<Boolean> = _isScanning.asStateFlow()
+
+    /**
+     * اسکن موزیک‌های حافظه دستگاه و به‌روزرسانی دیتابیس بدون پاک شدن علاقه‌مندی‌ها و آمار پخش
+     */
     suspend fun scanLocalMedia() = withContext(Dispatchers.IO) {
+        _isScanning.value = true
         try {
-            songDao.deleteSampleSongs()
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-
-        val scannedSongs = mutableListOf<SongEntity>()
-        val collection = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
-            MediaStore.Audio.Media.getContentUri(MediaStore.VOLUME_EXTERNAL)
-        } else {
-            MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
-        }
-
-        val projection = arrayOf(
-            MediaStore.Audio.Media._ID,
-            MediaStore.Audio.Media.TITLE,
-            MediaStore.Audio.Media.ARTIST,
-            MediaStore.Audio.Media.ALBUM,
-            MediaStore.Audio.Media.DURATION,
-            MediaStore.Audio.Media.DATA,
-            MediaStore.Audio.Media.ALBUM_ID,
-            MediaStore.Audio.Media.YEAR,
-            MediaStore.Audio.Media.SIZE
-        )
-
-        val selection = "(${MediaStore.Audio.Media.IS_MUSIC} != 0 OR ${MediaStore.Audio.Media.DURATION} >= 5000) AND ${MediaStore.Audio.Media.DURATION} >= 5000"
-
-        try {
-            context.contentResolver.query(
-                collection,
-                projection,
-                selection,
-                null,
-                "${MediaStore.Audio.Media.TITLE} ASC"
-            )?.use { cursor ->
-                val idColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media._ID)
-                val titleColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE)
-                val artistColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST)
-                val albumColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM)
-                val durationColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION)
-                val dataColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA)
-                val albumIdColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM_ID)
-                val yearColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.YEAR)
-                val sizeColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.SIZE)
-
-                while (cursor.moveToNext()) {
-                    val id = cursor.getLong(idColumn)
-                    val title = cursor.getString(titleColumn)?.takeIf { it.isNotBlank() } ?: "Unknown Track"
-                    val artist = cursor.getString(artistColumn)?.takeIf { it.isNotBlank() } ?: "Unknown Artist"
-                    val album = cursor.getString(albumColumn)?.takeIf { it.isNotBlank() } ?: "Unknown Album"
-                    val duration = cursor.getLong(durationColumn)
-                    val path = cursor.getString(dataColumn) ?: ""
-                    val albumId = cursor.getLong(albumIdColumn)
-                    val year = cursor.getInt(yearColumn)
-                    val size = cursor.getLong(sizeColumn)
-
-                    val artworkUri = if (albumId > 0) {
-                        ContentUris.withAppendedId(
-                            Uri.parse("content://media/external/audio/albumart"),
-                            albumId
-                        ).toString()
-                    } else {
-                        ContentUris.withAppendedId(
-                            MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
-                            id
-                        ).toString()
-                    }
-
-                    val folderName = try {
-                        File(path).parentFile?.name ?: "Internal Storage"
-                    } catch (e: Exception) {
-                        "Internal Storage"
-                    }
-
-                    scannedSongs.add(
-                        SongEntity(
-                            id = id,
-                            title = title,
-                            artist = artist,
-                            album = album,
-                            duration = if (duration > 0) duration else 180000L,
-                            path = path,
-                            albumArtUri = artworkUri,
-                            genre = "Audio",
-                            year = if (year > 0) year else 2024,
-                            folder = folderName,
-                            bitrate = 320,
-                            fileSize = size
-                        )
-                    )
-                }
+            try {
+                songDao.deleteSampleSongs()
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
 
-        if (scannedSongs.isNotEmpty()) {
-            songDao.insertSongs(scannedSongs)
-            val validIds = scannedSongs.map { it.id }
-            songDao.deleteSongsNotIn(validIds)
+            val scannedSongs = mutableListOf<SongEntity>()
+            val collection = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                MediaStore.Audio.Media.getContentUri(MediaStore.VOLUME_EXTERNAL)
+            } else {
+                MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
+            }
+
+            val projection = arrayOf(
+                MediaStore.Audio.Media._ID,
+                MediaStore.Audio.Media.TITLE,
+                MediaStore.Audio.Media.ARTIST,
+                MediaStore.Audio.Media.ALBUM,
+                MediaStore.Audio.Media.DURATION,
+                MediaStore.Audio.Media.DATA,
+                MediaStore.Audio.Media.ALBUM_ID,
+                MediaStore.Audio.Media.YEAR,
+                MediaStore.Audio.Media.SIZE
+            )
+
+            val selection = "(${MediaStore.Audio.Media.IS_MUSIC} != 0 OR ${MediaStore.Audio.Media.DURATION} >= 5000) AND ${MediaStore.Audio.Media.DURATION} >= 5000"
+
+            try {
+                context.contentResolver.query(
+                    collection,
+                    projection,
+                    selection,
+                    null,
+                    "${MediaStore.Audio.Media.TITLE} ASC"
+                )?.use { cursor ->
+                    val idColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media._ID)
+                    val titleColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE)
+                    val artistColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST)
+                    val albumColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM)
+                    val durationColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION)
+                    val dataColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA)
+                    val albumIdColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM_ID)
+                    val yearColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.YEAR)
+                    val sizeColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.SIZE)
+
+                    while (cursor.moveToNext()) {
+                        val id = cursor.getLong(idColumn)
+                        val title = cursor.getString(titleColumn)?.takeIf { it.isNotBlank() } ?: "Unknown Track"
+                        val artist = cursor.getString(artistColumn)?.takeIf { it.isNotBlank() } ?: "Unknown Artist"
+                        val album = cursor.getString(albumColumn)?.takeIf { it.isNotBlank() } ?: "Unknown Album"
+                        val duration = cursor.getLong(durationColumn)
+                        val path = cursor.getString(dataColumn) ?: ""
+                        val albumId = cursor.getLong(albumIdColumn)
+                        val year = cursor.getInt(yearColumn)
+                        val size = cursor.getLong(sizeColumn)
+
+                        val artworkUri = if (albumId > 0) {
+                            ContentUris.withAppendedId(
+                                Uri.parse("content://media/external/audio/albumart"),
+                                albumId
+                            ).toString()
+                        } else {
+                            ContentUris.withAppendedId(
+                                MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                                id
+                            ).toString()
+                        }
+
+                        val folderName = try {
+                            File(path).parentFile?.name ?: "Internal Storage"
+                        } catch (e: Exception) {
+                            "Internal Storage"
+                        }
+
+                        scannedSongs.add(
+                            SongEntity(
+                                id = id,
+                                title = title,
+                                artist = artist,
+                                album = album,
+                                duration = if (duration > 0) duration else 180000L,
+                                path = path,
+                                albumArtUri = artworkUri,
+                                genre = "Audio",
+                                year = if (year > 0) year else 2024,
+                                folder = folderName,
+                                bitrate = 320,
+                                fileSize = size
+                            )
+                        )
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+
+            if (scannedSongs.isNotEmpty()) {
+                // خواندن موزیک‌های موجود در دیتابیس برای حفظ وضعیت علاقه‌مندی و آمار پخش کاربر
+                val existingSongsMap = songDao.getAllSongsSync().associateBy { it.id }
+                val songsToUpsert = scannedSongs.map { scanned ->
+                    val existing = existingSongsMap[scanned.id]
+                    if (existing != null) {
+                        scanned.copy(
+                            isFavorite = existing.isFavorite,
+                            playCount = existing.playCount,
+                            lastPlayedTimestamp = existing.lastPlayedTimestamp,
+                            lrcContent = existing.lrcContent,
+                            savedPositionMs = existing.savedPositionMs,
+                            rating = existing.rating
+                        )
+                    } else {
+                        scanned
+                    }
+                }
+
+                songDao.insertSongs(songsToUpsert)
+                val validIds = scannedSongs.map { it.id }
+                songDao.deleteSongsNotIn(validIds)
+            }
+        } finally {
+            _isScanning.value = false
         }
     }
 

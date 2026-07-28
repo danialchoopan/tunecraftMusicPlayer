@@ -3,20 +3,30 @@ package ir.danialchoopan.tunecraftmusicplayer.service
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
+import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothDevice
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.ImageDecoder
 import android.media.AudioManager
+import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
-import androidx.core.app.NotificationCompat
+import android.provider.MediaStore
+import androidx.core.graphics.ColorUtils
 import androidx.media3.common.*
 import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.session.MediaSession
-import androidx.media3.session.MediaSessionService
+import androidx.media3.session.*
+import androidx.palette.graphics.Palette
+import com.google.common.collect.ImmutableList
+import com.google.common.util.concurrent.Futures
+import com.google.common.util.concurrent.ListenableFuture
 import ir.danialchoopan.tunecraftmusicplayer.MainActivity
 import ir.danialchoopan.tunecraftmusicplayer.R
 import ir.danialchoopan.tunecraftmusicplayer.TuneCraftApplication
@@ -25,6 +35,8 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
+import java.io.File
 
 enum class ShuffleType(val labelEn: String, val labelFa: String) {
     OFF("Shuffle Off", "شافل خاموش"),
@@ -34,6 +46,15 @@ enum class ShuffleType(val labelEn: String, val labelFa: String) {
     FRESH_TRACKS("Fresh Tracks Priority", "شافل اولویت آهنگ‌های جدید")
 }
 
+data class PaletteColors(
+    val dominantColor: Int = 0xFF121212.toInt(),
+    val vibrantColor: Int = 0xFF1DB954.toInt(),
+    val darkVibrantColor: Int = 0xFF0D5225.toInt(),
+    val lightVibrantColor: Int = 0xFF1ED760.toInt(),
+    val mutedColor: Int = 0xFF282828.toInt(),
+    val onDominantColor: Int = 0xFFFFFFFF.toInt()
+)
+
 data class PlayerState(
     val currentSong: SongEntity? = null,
     val isPlaying: Boolean = false,
@@ -41,26 +62,34 @@ data class PlayerState(
     val durationMs: Long = 0L,
     val shuffleMode: Boolean = false,
     val shuffleType: ShuffleType = ShuffleType.OFF,
-    val repeatMode: Int = Player.REPEAT_MODE_OFF, // OFF, ONE, ALL
+    val repeatMode: Int = Player.REPEAT_MODE_OFF,
     val playbackSpeed: Float = 1.0f,
     val pitch: Float = 1.0f,
     val queue: List<SongEntity> = emptyList(),
     val currentIndex: Int = -1,
-    val sleepTimerRemainingSeconds: Int = 0
+    val sleepTimerRemainingSeconds: Int = 0,
+    val paletteColors: PaletteColors = PaletteColors()
 )
 
-class TuneCraftMediaService : MediaSessionService() {
+class TuneCraftMediaService : MediaLibraryService() {
 
-    private var mediaSession: MediaSession? = null
+    private var mediaLibrarySession: MediaLibrarySession? = null
     private lateinit var exoPlayer: ExoPlayer
     private val serviceScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
 
     private var audioFxManager: AudioFxManager? = null
 
-    private val becomingNoisyReceiver = object : BroadcastReceiver() {
+    // Smart Pause on disconnect receiver (wired + bluetooth)
+    private val disconnectReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
-            if (intent?.action == AudioManager.ACTION_AUDIO_BECOMING_NOISY) {
-                exoPlayer.pause()
+            val action = intent?.action
+            if (action == AudioManager.ACTION_AUDIO_BECOMING_NOISY ||
+                action == BluetoothDevice.ACTION_ACL_DISCONNECTED ||
+                action == BluetoothAdapter.ACTION_CONNECTION_STATE_CHANGED
+            ) {
+                if (::exoPlayer.isInitialized && exoPlayer.isPlaying) {
+                    exoPlayer.pause()
+                }
             }
         }
     }
@@ -91,6 +120,108 @@ class TuneCraftMediaService : MediaSessionService() {
         }
     }
 
+    private val librarySessionCallback = object : MediaLibrarySession.Callback {
+
+        /**
+         * مدیریت اتصال کنترلرها (از جمله پنل مدیای سیستم اندروید ۱۰ به بعد، صفحه قفل و دستگاه‌های بلوتوثی)
+         */
+        override fun onConnect(
+            session: MediaSession,
+            controller: MediaSession.ControllerInfo
+        ): MediaSession.ConnectionResult {
+            val connectionResult = super.onConnect(session, controller)
+            val sessionCommands = connectionResult.availableSessionCommands.buildUpon().build()
+            val playerCommands = connectionResult.availablePlayerCommands.buildUpon()
+                .add(Player.COMMAND_PLAY_PAUSE)
+                .add(Player.COMMAND_SEEK_TO_NEXT)
+                .add(Player.COMMAND_SEEK_TO_PREVIOUS)
+                .add(Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM)
+                .add(Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM)
+                .add(Player.COMMAND_SEEK_IN_CURRENT_MEDIA_ITEM)
+                .add(Player.COMMAND_STOP)
+                .build()
+            return MediaSession.ConnectionResult.accept(sessionCommands, playerCommands)
+        }
+
+        override fun onGetLibraryRoot(
+            session: MediaLibrarySession,
+            browser: MediaSession.ControllerInfo,
+            params: LibraryParams?
+        ): ListenableFuture<LibraryResult<MediaItem>> {
+            val rootItem = MediaItem.Builder()
+                .setMediaId("root")
+                .setMediaMetadata(
+                    MediaMetadata.Builder()
+                        .setTitle("TuneCraft Music Library")
+                        .setIsPlayable(false)
+                        .setIsBrowsable(true)
+                        .setFolderType(MediaMetadata.FOLDER_TYPE_MIXED)
+                        .build()
+                )
+                .build()
+            return Futures.immediateFuture(LibraryResult.ofItem(rootItem, params))
+        }
+
+        override fun onGetChildren(
+            session: MediaLibrarySession,
+            browser: MediaSession.ControllerInfo,
+            parentId: String,
+            page: Int,
+            pageSize: Int,
+            params: LibraryParams?
+        ): ListenableFuture<LibraryResult<ImmutableList<MediaItem>>> {
+            // استفاده مستقیم از صف موجود بدون مسدودسازی نخ اصلی (No runBlocking)
+            val songs = _playerState.value.queue
+            val mediaItems = songs.map { song ->
+                val artworkUri = song.albumArtUri?.takeIf { it.isNotBlank() }?.let { Uri.parse(it) }
+                    ?: if (song.path.startsWith("content://") || song.path.startsWith("file://")) Uri.parse(song.path) else null
+                MediaItem.Builder()
+                    .setMediaId(song.id.toString())
+                    .setUri(song.path)
+                    .setMediaMetadata(
+                        MediaMetadata.Builder()
+                            .setTitle(song.title)
+                            .setArtist(song.artist)
+                            .setAlbumTitle(song.album)
+                            .setAlbumArtist(song.artist)
+                            .setGenre(song.genre)
+                            .setArtworkUri(artworkUri)
+                            .setIsPlayable(true)
+                            .setFolderType(MediaMetadata.FOLDER_TYPE_NONE)
+                            .build()
+                    )
+                    .build()
+            }
+            return Futures.immediateFuture(LibraryResult.ofItemList(ImmutableList.copyOf(mediaItems), params))
+        }
+
+        override fun onGetItem(
+            session: MediaLibrarySession,
+            browser: MediaSession.ControllerInfo,
+            mediaId: String
+        ): ListenableFuture<LibraryResult<MediaItem>> {
+            val song = _playerState.value.queue.find { it.id.toString() == mediaId }
+            if (song != null) {
+                val artworkUri = song.albumArtUri?.takeIf { it.isNotBlank() }?.let { Uri.parse(it) }
+                val item = MediaItem.Builder()
+                    .setMediaId(song.id.toString())
+                    .setUri(song.path)
+                    .setMediaMetadata(
+                        MediaMetadata.Builder()
+                            .setTitle(song.title)
+                            .setArtist(song.artist)
+                            .setAlbumTitle(song.album)
+                            .setArtworkUri(artworkUri)
+                            .setIsPlayable(true)
+                            .build()
+                    )
+                    .build()
+                return Futures.immediateFuture(LibraryResult.ofItem(item, null))
+            }
+            return Futures.immediateFuture(LibraryResult.ofError(LibraryResult.RESULT_ERROR_BAD_VALUE))
+        }
+    }
+
     companion object {
         const val ACTION_PLAY_PAUSE = "ir.danialchoopan.tunecraftmusicplayer.ACTION_PLAY_PAUSE"
         const val ACTION_NEXT = "ir.danialchoopan.tunecraftmusicplayer.ACTION_NEXT"
@@ -102,10 +233,6 @@ class TuneCraftMediaService : MediaSessionService() {
         var instance: TuneCraftMediaService? = null
             private set
 
-        /**
-         * Dynamically updates the isFavorite state of a song in the current PlayerState
-         * and playback queue for instant UI response without waiting for database observers.
-         */
         fun updateSongFavoriteStatus(songId: Long, isFavorite: Boolean) {
             val current = _playerState.value
             val updatedSong = if (current.currentSong?.id == songId) {
@@ -136,14 +263,17 @@ class TuneCraftMediaService : MediaSessionService() {
         super.onCreate()
         instance = this
 
+        // ایجاد کانال نوتیفیکیشن کنترل رسانه
         createNotificationChannel()
 
-        setMediaNotificationProvider(
-            androidx.media3.session.DefaultMediaNotificationProvider.Builder(this)
-                .setChannelId("media_playback_channel")
-                .setNotificationId(1001)
-                .build()
-        )
+        // تنظیم تامین‌کننده نوتیفیکیشن Media3 پیش‌فرض جهت پشتیبانی از MediaStyle، صفحه قفل و پنل مدیای اندروید
+        val notificationProvider = DefaultMediaNotificationProvider.Builder(this)
+            .setChannelId("media_playback_channel")
+            .setChannelName(R.string.app_name)
+            .setNotificationId(1001)
+            .build()
+
+        setMediaNotificationProvider(notificationProvider)
 
         val audioAttributes = AudioAttributes.Builder()
             .setUsage(C.USAGE_MEDIA)
@@ -176,7 +306,7 @@ class TuneCraftMediaService : MediaSessionService() {
                                 currentIndex = index,
                                 durationMs = song.duration
                             )
-                            // Record playback history asynchronously
+                            extractPaletteForSong(song)
                             serviceScope.launch {
                                 TuneCraftApplication.instance.musicRepository.recordPlayHistory(song.id, song.duration)
                             }
@@ -198,9 +328,12 @@ class TuneCraftMediaService : MediaSessionService() {
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
 
-        mediaSession = MediaSession.Builder(this, exoPlayer)
+        mediaLibrarySession = MediaLibrarySession.Builder(this, exoPlayer, librarySessionCallback)
             .setSessionActivity(pendingIntent)
             .build()
+
+        // ثبت جلسه‌ی رسانه در MediaSessionService جهت ایجاد خودکار نوتیفیکیشن MediaStyle و کنترل‌های صفحه قفل و Quick Settings
+        addSession(mediaLibrarySession!!)
 
         audioFxManager = AudioFxManager(
             this,
@@ -210,14 +343,26 @@ class TuneCraftMediaService : MediaSessionService() {
             setAudioSessionId(exoPlayer.audioSessionId)
         }
 
-        val filter = IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY)
-        registerReceiver(becomingNoisyReceiver, filter)
+        val filter = IntentFilter().apply {
+            addAction(AudioManager.ACTION_AUDIO_BECOMING_NOISY)
+            addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED)
+            addAction(BluetoothAdapter.ACTION_CONNECTION_STATE_CHANGED)
+        }
+        registerReceiver(disconnectReceiver, filter)
 
         progressHandler.post(updateProgressRunnable)
     }
 
-    override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? {
-        return mediaSession
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        super.onTaskRemoved(rootIntent)
+        // در صورت بستن کامل برنامه از Recent Apps، اگر اهنگ پخش نمی‌شود سرویس را می‌بندیم
+        if (::exoPlayer.isInitialized && (!exoPlayer.playWhenReady || exoPlayer.mediaItemCount == 0 || exoPlayer.playbackState == Player.STATE_ENDED)) {
+            stopSelf()
+        }
+    }
+
+    override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaLibrarySession? {
+        return mediaLibrarySession
     }
 
     fun playSongs(songs: List<SongEntity>, startIndex: Int = 0) {
@@ -252,6 +397,8 @@ class TuneCraftMediaService : MediaSessionService() {
             currentIndex = targetIndex,
             currentSong = targetSong
         )
+
+        extractPaletteForSong(targetSong)
 
         val startPositionMs = if (targetSong.savedPositionMs > 5000L && targetSong.savedPositionMs < targetSong.duration - 5000L) {
             targetSong.savedPositionMs
@@ -360,6 +507,107 @@ class TuneCraftMediaService : MediaSessionService() {
 
     fun getAudioFxManager(): AudioFxManager? = audioFxManager
 
+    /**
+     * استخراج تصویر آلبوم و پالت رنگی آهنگ جاری و ارسال مستقیم تصویر به پنل مدیای سیستم اندروید (MediaStyle Notification & Quick Settings)
+     */
+    private fun extractPaletteForSong(song: SongEntity) {
+        serviceScope.launch(Dispatchers.IO) {
+            try {
+                var bitmap: Bitmap? = null
+                var artBytes: ByteArray? = null
+
+                if (!song.albumArtUri.isNullOrBlank()) {
+                    try {
+                        val uri = Uri.parse(song.albumArtUri)
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                            val source = ImageDecoder.createSource(contentResolver, uri)
+                            bitmap = ImageDecoder.decodeBitmap(source) { decoder, _, _ ->
+                                decoder.setTargetSize(400, 400)
+                            }
+                        } else {
+                            @Suppress("DEPRECATION")
+                            bitmap = MediaStore.Images.Media.getBitmap(contentResolver, uri)
+                        }
+                    } catch (e: Exception) {
+                        // Fallback
+                    }
+                }
+
+                if (bitmap == null && (song.path.startsWith("content://") || song.path.startsWith("file://") || File(song.path).exists())) {
+                    try {
+                        val retriever = MediaMetadataRetriever()
+                        if (song.path.startsWith("content://")) {
+                            retriever.setDataSource(this@TuneCraftMediaService, Uri.parse(song.path))
+                        } else {
+                            retriever.setDataSource(song.path)
+                        }
+                        artBytes = retriever.embeddedPicture
+                        retriever.release()
+                        if (artBytes != null) {
+                            bitmap = BitmapFactory.decodeByteArray(artBytes, 0, artBytes.size)
+                        }
+                    } catch (e: Exception) {
+                        // Fallback
+                    }
+                }
+
+                if (bitmap != null) {
+                    // تبدیل بیت‌مپ به بایت جهت ارسال به MediaSession در سیستم نوتیفیکیشن
+                    if (artBytes == null) {
+                        val stream = java.io.ByteArrayOutputStream()
+                        bitmap.compress(Bitmap.CompressFormat.JPEG, 85, stream)
+                        artBytes = stream.toByteArray()
+                    }
+
+                    // به‌روزرسانی متادیتای ExoPlayer جهت نمایش در نوتیفیکیشن MediaStyle و صفحه قفل اندروید ۱۰ به بعد
+                    val currentArtBytes = artBytes
+                    withContext(Dispatchers.Main) {
+                        if (::exoPlayer.isInitialized) {
+                            val currentItem = exoPlayer.currentMediaItem
+                            if (currentItem != null && currentItem.mediaId == song.id.toString()) {
+                                val updatedMetadata = currentItem.mediaMetadata.buildUpon()
+                                    .setArtworkData(currentArtBytes, MediaMetadata.PICTURE_TYPE_FRONT_COVER)
+                                    .build()
+                                val updatedItem = currentItem.buildUpon()
+                                    .setMediaMetadata(updatedMetadata)
+                                    .build()
+                                val currentIndex = exoPlayer.currentMediaItemIndex
+                                if (currentIndex != C.INDEX_UNSET) {
+                                    exoPlayer.replaceMediaItem(currentIndex, updatedItem)
+                                }
+                            }
+                        }
+                    }
+
+                    Palette.from(bitmap).generate { palette ->
+                        if (palette != null) {
+                            val dominant = palette.getDominantColor(0xFF121212.toInt())
+                            val vibrant = palette.getVibrantColor(0xFF1DB954.toInt())
+                            val darkVibrant = palette.getDarkVibrantColor(0xFF0D5225.toInt())
+                            val lightVibrant = palette.getLightVibrantColor(0xFF1ED760.toInt())
+                            val muted = palette.getMutedColor(0xFF282828.toInt())
+                            val onDominant = if (ColorUtils.calculateLuminance(dominant) > 0.5) 0xFF000000.toInt() else 0xFFFFFFFF.toInt()
+
+                            val paletteColors = PaletteColors(
+                                dominantColor = dominant,
+                                vibrantColor = vibrant,
+                                darkVibrantColor = darkVibrant,
+                                lightVibrantColor = lightVibrant,
+                                mutedColor = muted,
+                                onDominantColor = onDominant
+                            )
+                            _playerState.value = _playerState.value.copy(paletteColors = paletteColors)
+                        }
+                    }
+                } else {
+                    _playerState.value = _playerState.value.copy(paletteColors = PaletteColors())
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
@@ -377,13 +625,18 @@ class TuneCraftMediaService : MediaSessionService() {
 
     override fun onDestroy() {
         progressHandler.removeCallbacks(updateProgressRunnable)
-        unregisterReceiver(becomingNoisyReceiver)
+        try {
+            unregisterReceiver(disconnectReceiver)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
         audioFxManager?.release()
         exoPlayer.release()
-        mediaSession?.run {
+        mediaLibrarySession?.run {
+            removeSession(this)
             player.release()
             release()
-            mediaSession = null
+            mediaLibrarySession = null
         }
         serviceScope.cancel()
         instance = null

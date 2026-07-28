@@ -54,6 +54,7 @@ fun NowPlayingSheet(
     onSetSleepTimer: (Int) -> Unit,
     onEditTags: (SongEntity) -> Unit,
     onAddToPlaylistClick: ((SongEntity) -> Unit)? = null,
+    onTrimAudioClick: ((SongEntity) -> Unit)? = null,
     customPresets: List<ir.danialchoopan.tunecraftmusicplayer.data.local.entity.EqualizerPresetEntity> = emptyList(),
     onSaveCustomPreset: ((String, List<Int>, Int, Int, Float) -> Unit)? = null,
     onDeleteCustomPreset: ((ir.danialchoopan.tunecraftmusicplayer.data.local.entity.EqualizerPresetEntity) -> Unit)? = null
@@ -201,6 +202,16 @@ fun NowPlayingSheet(
                                     }
                                 }
 
+                                if (onTrimAudioClick != null) {
+                                    IconButton(onClick = { onTrimAudioClick(song) }) {
+                                        Icon(
+                                            imageVector = Icons.Default.ContentCut,
+                                            contentDescription = "Trim Audio",
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                }
+
                                 IconButton(onClick = { onEditTags(song) }) {
                                     Icon(
                                         imageVector = Icons.Default.Edit,
@@ -279,17 +290,20 @@ fun NowPlayingSheet(
                         )
                     }
 
+                    val dynamicAccent = Color(playerState.paletteColors.lightVibrantColor)
+                    val dynamicOnAccent = Color(playerState.paletteColors.onDominantColor)
+
                     Surface(
                         onClick = onPlayPause,
                         shape = CircleShape,
-                        color = MaterialTheme.colorScheme.primary,
+                        color = dynamicAccent,
                         modifier = Modifier.size(64.dp)
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Icon(
                                 imageVector = if (playerState.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
                                 contentDescription = "Play/Pause",
-                                tint = MaterialTheme.colorScheme.onPrimary,
+                                tint = dynamicOnAccent,
                                 modifier = Modifier.size(36.dp)
                             )
                         }

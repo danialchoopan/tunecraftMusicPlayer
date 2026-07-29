@@ -19,6 +19,15 @@ import org.json.JSONObject
 import java.io.File
 import kotlin.math.abs
 
+/**
+ * Central Repository for Media Data & State Management.
+ *
+ * Developer & Architecture Notes:
+ * 1. Thread Safety: All MediaStore indexing and Room database mutations execute strictly on `Dispatchers.IO`.
+ * 2. Reactive Data Streams: Exposes Room flows for reactive UI state observation without polling overhead.
+ * 3. Atomic Scan Operations: MediaStore scanning updates database entries in batch operations, maintaining entity integrity.
+ * 4. URI Resolver: Resolves external audio intents (from file managers, share actions) into fully playable `SongEntity` instances.
+ */
 class MusicRepository(
     private val context: Context,
     private val songDao: SongDao,

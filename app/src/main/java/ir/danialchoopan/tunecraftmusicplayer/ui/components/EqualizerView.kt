@@ -1,8 +1,7 @@
 package ir.danialchoopan.tunecraftmusicplayer.ui.components
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -23,6 +22,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -35,6 +35,7 @@ import kotlin.math.roundToInt
 val DefaultEqualizerPresetsMap = mapOf(
     "Flat" to listOf(0, 0, 0, 0, 0),
     "Bass Boost" to listOf(6, 4, 2, 0, 0),
+    "Deep Bass" to listOf(8, 6, 2, -1, -2),
     "Rock" to listOf(5, 3, -1, 3, 5),
     "Pop" to listOf(-1, 2, 4, 2, -1),
     "Jazz" to listOf(3, 2, 1, 2, 3),
@@ -43,9 +44,37 @@ val DefaultEqualizerPresetsMap = mapOf(
     "Hip Hop" to listOf(5, 3, 0, 2, 4),
     "Electronic" to listOf(4, 2, -1, 3, 4),
     "Vocal Booster" to listOf(-2, 1, 4, 3, 0),
+    "Treble Booster" to listOf(-3, -1, 1, 4, 6),
     "Acoustic" to listOf(3, 2, 1, 2, 2)
 )
 
+data class QuickSoundProfile(
+    val id: String,
+    val nameEn: String,
+    val nameFa: String,
+    val icon: ImageVector,
+    val bands: List<Int>,
+    val bass: Int,
+    val virt: Int,
+    val loudness: Int,
+    val reverb: Int
+)
+
+val QuickSoundProfilesList = listOf(
+    QuickSoundProfile("headphone", "Headphones Mode", "حالت هدفون", Icons.Default.Headphones, listOf(2, 1, 0, 2, 4), 30, 40, 10, 1),
+    QuickSoundProfile("car", "Car Audio Punch", "بیس ماشین", Icons.Default.DirectionsCar, listOf(6, 4, 1, 2, 3), 75, 20, 40, 0),
+    QuickSoundProfile("speaker", "Loud Speaker", "اسپیکر قوی", Icons.Default.VolumeUp, listOf(3, 2, 2, 3, 3), 40, 10, 60, 0),
+    QuickSoundProfile("vocal", "Podcast / Vocal", "پادکست و وکال", Icons.Default.Mic, listOf(-3, 0, 5, 4, 1), 0, 0, 20, 0)
+)
+
+val CurveColors = listOf(
+    Color(0xFF00E5FF) to "Cyan Neon",
+    Color(0xFFFFB300) to "Gold Sunset",
+    Color(0xFFD500F9) to "Electric Purple",
+    Color(0xFF00E676) to "Emerald Green"
+)
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EqualizerView(
     audioFxManager: AudioFxManager?,
@@ -58,7 +87,9 @@ fun EqualizerView(
     val state by audioFxManager?.state?.collectAsState() ?: remember { mutableStateOf(EqualizerState()) }
     var showSaveDialog by remember { mutableStateOf(false) }
     var customPresetNameInput by remember { mutableStateOf("") }
+    var selectedColorIndex by remember { mutableStateOf(0) }
 
+    val activeCurveColor = CurveColors[selectedColorIndex].first
     val primaryColor = MaterialTheme.colorScheme.primary
     val surfaceVariant = MaterialTheme.colorScheme.surfaceVariant
 
@@ -67,7 +98,7 @@ fun EqualizerView(
             .fillMaxWidth()
             .padding(16.dp)
     ) {
-        // Header Row: Power Switch & Reset/Save Controls
+        // Power Switch Card
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(containerColor = surfaceVariant),
@@ -83,7 +114,7 @@ fun EqualizerView(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
                         modifier = Modifier
-                            .size(42.dp)
+                            .size(44.dp)
                             .clip(CircleShape)
                             .background(if (state.isEnabled) primaryColor.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surface),
                         contentAlignment = Alignment.Center
@@ -97,7 +128,7 @@ fun EqualizerView(
                     Spacer(modifier = Modifier.width(12.dp))
                     Column {
                         Text(
-                            text = if (isPersian) "اکولایزر و افکت صوتی" else "Audio Equalizer & FX",
+                            text = if (isPersian) "وضعیت اکولایزر" else "Equalizer Status",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
@@ -114,6 +145,11 @@ fun EqualizerView(
                     IconButton(
                         onClick = {
                             audioFxManager?.applyPreset("Flat", List(state.numberOfBands) { 0 })
+                            audioFxManager?.setBassBoost(0)
+                            audioFxManager?.setVirtualizer(0)
+                            audioFxManager?.setLoudnessBoost(0)
+                            audioFxManager?.setReverbPreset(0)
+                            audioFxManager?.setBalance(0f)
                         },
                         enabled = state.isEnabled
                     ) {
@@ -150,23 +186,87 @@ fun EqualizerView(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Visual Frequency Gain Response Curve Canvas
-        FrequencyCurveCanvas(
-            bandLevels = state.bandLevels,
-            isEnabled = state.isEnabled,
-            primaryColor = primaryColor,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(110.dp)
-                .clip(RoundedCornerShape(16.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-        )
+        // Visual Frequency Curve Canvas
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = surfaceVariant.copy(alpha = 0.6f)),
+            shape = RoundedCornerShape(20.dp)
+        ) {
+            Column(modifier = Modifier.padding(12.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = if (isPersian) "منحنی فرکانسی زنده" else "Frequency Gain Response",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    // Color customization chips for curve
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        CurveColors.forEachIndexed { idx, pair ->
+                            Box(
+                                modifier = Modifier
+                                    .size(16.dp)
+                                    .clip(CircleShape)
+                                    .background(pair.first)
+                                    .clickable { selectedColorIndex = idx }
+                            )
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                FrequencyCurveCanvas(
+                    bandLevels = state.bandLevels,
+                    isEnabled = state.isEnabled,
+                    primaryColor = activeCurveColor,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(110.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))
+                )
+            }
+        }
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Presets Chips Carousel
+        // One-Tap Quick Sound Profiles
         Text(
-            text = if (isPersian) "پیش‌فرض‌های اکولایزر" else "Equalizer Presets",
+            text = if (isPersian) "پروفایل‌های صوتی سریع" else "Quick Sound Profiles",
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            items(QuickSoundProfilesList) { profile ->
+                ElevatedAssistChip(
+                    onClick = {
+                        audioFxManager?.applyPreset(profile.nameEn, profile.bands)
+                        audioFxManager?.setBassBoost(profile.bass)
+                        audioFxManager?.setVirtualizer(profile.virt)
+                        audioFxManager?.setLoudnessBoost(profile.loudness)
+                        audioFxManager?.setReverbPreset(profile.reverb)
+                    },
+                    label = { Text(if (isPersian) profile.nameFa else profile.nameEn) },
+                    leadingIcon = { Icon(profile.icon, contentDescription = null, modifier = Modifier.size(16.dp)) },
+                    enabled = state.isEnabled
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Presets Carousel
+        Text(
+            text = if (isPersian) "پیش‌فرض‌های اکولایزر (Presets)" else "Equalizer Presets",
             style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -230,7 +330,7 @@ fun EqualizerView(
 
         // Vertical Frequency Band Sliders
         Text(
-            text = if (isPersian) "تنظیم فرکانس‌ها (dB)" else "Frequency Bands (-12dB to +12dB)",
+            text = if (isPersian) "تنظیم فرکانس‌ها (-12dB تا +12dB)" else "Frequency Bands (-12dB to +12dB)",
             style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -255,7 +355,7 @@ fun EqualizerView(
                     levelDb = level,
                     freqLabel = freqLabel,
                     isEnabled = state.isEnabled,
-                    primaryColor = primaryColor,
+                    primaryColor = activeCurveColor,
                     onLevelChange = { newLevel ->
                         audioFxManager?.setBandLevel(index, newLevel)
                     },
@@ -266,7 +366,7 @@ fun EqualizerView(
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        // Sound Enhancement FX (Bass Boost, Virtualizer 3D, Balance)
+        // Sound Enhancement FX (Bass Boost, Virtualizer 3D, Loudness, Reverb, Balance)
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(containerColor = surfaceVariant),
@@ -277,7 +377,7 @@ fun EqualizerView(
                     Icon(imageVector = Icons.Default.GraphicEq, contentDescription = null, tint = primaryColor)
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = if (isPersian) "بهبود‌دهنده‌های صوتی (DSP Effects)" else "Audio Enhancements",
+                        text = if (isPersian) "بهبود‌دهنده‌های صوتی (DSP Effects)" else "Audio Enhancements & FX",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
@@ -362,6 +462,77 @@ fun EqualizerView(
                 }
 
                 Spacer(modifier = Modifier.height(12.dp))
+
+                // Loudness Enhancer Slider
+                Column {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.Bolt,
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp),
+                                tint = primaryColor
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = if (isPersian) "تقویت صدای خروجی (Volume Punch)" else "Loudness Enhancer",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                        Text(
+                            text = "${state.loudnessBoost}%",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = primaryColor
+                        )
+                    }
+                    Slider(
+                        value = state.loudnessBoost.toFloat(),
+                        onValueChange = { audioFxManager?.setLoudnessBoost(it.roundToInt()) },
+                        valueRange = 0f..100f,
+                        enabled = state.isEnabled,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Reverb Environment Selector
+                Column {
+                    Text(
+                        text = if (isPersian) "طنین و محیط صدا (Reverb Environment)" else "Reverb Environment",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    val reverbOptions = listOf(
+                        0 to (if (isPersian) "خاموش" else "Off"),
+                        1 to (if (isPersian) "اتاق کوچک" else "Small Room"),
+                        2 to (if (isPersian) "سالن بزرگ" else "Large Room"),
+                        3 to (if (isPersian) "سالن کنسرت" else "Concert Hall"),
+                        4 to (if (isPersian) "محیط پلیت" else "Plate Reverb")
+                    )
+
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        items(reverbOptions) { (code, label) ->
+                            val isSel = state.reverbPreset == code
+                            FilterChip(
+                                selected = isSel,
+                                onClick = { audioFxManager?.setReverbPreset(code) },
+                                label = { Text(label) },
+                                enabled = state.isEnabled
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
 
                 // Audio Stereo Balance Slider
                 Column {
@@ -454,7 +625,6 @@ private fun abs(valF: Float): Float = if (valF < 0f) -valF else valF
 
 /**
  * Custom Vertical Band Slider
- * Correctly renders vertical track, zero-center line, illuminated thumb, gain badge, and frequency label.
  */
 @Composable
 fun VerticalBandSlider(
@@ -495,7 +665,6 @@ fun VerticalBandSlider(
                         change.consume()
                         val heightPx = size.height.toFloat()
                         val touchY = change.position.y.coerceIn(0f, heightPx)
-                        // Touch top (y=0) = +12dB, touch bottom (y=heightPx) = -12dB
                         val norm = 1f - (touchY / heightPx)
                         val calculatedDb = (norm * 24f - 12f).roundToInt().coerceIn(-12, 12)
                         onLevelChange(calculatedDb)
@@ -519,11 +688,9 @@ fun VerticalBandSlider(
                 )
 
                 if (isEnabled) {
-                    // Normalize levelDb from [-12, +12] to [1.0 (top), 0.0 (bottom)]
                     val levelNorm = (levelDb + 12f) / 24f
                     val thumbY = height * (1f - levelNorm)
 
-                    // Draw vertical active bar from 0dB center to thumbY
                     val activeBarTop = minOf(centerY, thumbY)
                     val activeBarBottom = maxOf(centerY, thumbY)
                     val activeBarHeight = maxOf(4.dp.toPx(), activeBarBottom - activeBarTop)
@@ -535,7 +702,6 @@ fun VerticalBandSlider(
                         cornerRadius = androidx.compose.ui.geometry.CornerRadius(3.dp.toPx())
                     )
 
-                    // Draw Glowing Thumb Circle
                     drawCircle(
                         color = primaryColor.copy(alpha = 0.3f),
                         radius = 14.dp.toPx(),
@@ -570,7 +736,6 @@ fun VerticalBandSlider(
 
 /**
  * Frequency Gain Response Curve Canvas
- * Smooth Bezier curve showing current gain across frequency bands
  */
 @Composable
 fun FrequencyCurveCanvas(
@@ -584,7 +749,7 @@ fun FrequencyCurveCanvas(
         val height = size.height
         val centerY = height / 2f
 
-        // Grid Lines: +12dB, 0dB, -12dB
+        // Grid Lines
         drawLine(
             color = Color.Gray.copy(alpha = 0.2f),
             start = Offset(0f, 10.dp.toPx()),

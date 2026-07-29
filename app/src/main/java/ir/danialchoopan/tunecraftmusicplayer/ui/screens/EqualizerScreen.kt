@@ -14,57 +14,37 @@ import ir.danialchoopan.tunecraftmusicplayer.service.AudioFxManager
 import ir.danialchoopan.tunecraftmusicplayer.ui.components.EqualizerView
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EqualizerScreen(
     audioFxManager: AudioFxManager?,
     musicRepository: MusicRepository,
     isPersian: Boolean = false,
-    onBack: () -> Unit
+    onBack: (() -> Unit)? = null
 ) {
     val coroutineScope = rememberCoroutineScope()
     val customPresets by musicRepository.equalizerPresets.collectAsState(initial = emptyList())
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(if (isPersian) "اکولایزر و تنظیمات صدا" else "Equalizer & Sound FX")
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
-                        )
-                    }
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+    ) {
+        EqualizerView(
+            audioFxManager = audioFxManager,
+            customPresets = customPresets,
+            onSaveCustomPreset = { name, bandLevels, bassBoost, virtualizer, balance ->
+                coroutineScope.launch {
+                    musicRepository.saveEqualizerPreset(name, bandLevels, bassBoost, virtualizer, balance)
                 }
-            )
-        }
-    ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .verticalScroll(rememberScrollState())
-        ) {
-            EqualizerView(
-                audioFxManager = audioFxManager,
-                customPresets = customPresets,
-                onSaveCustomPreset = { name, bandLevels, bassBoost, virtualizer, balance ->
-                    coroutineScope.launch {
-                        musicRepository.saveEqualizerPreset(name, bandLevels, bassBoost, virtualizer, balance)
-                    }
-                },
-                onDeleteCustomPreset = { preset ->
-                    coroutineScope.launch {
-                        musicRepository.deleteEqualizerPreset(preset)
-                    }
-                },
-                isPersian = isPersian
-            )
+            },
+            onDeleteCustomPreset = { preset ->
+                coroutineScope.launch {
+                    musicRepository.deleteEqualizerPreset(preset)
+                }
+            },
+            isPersian = isPersian
+        )
 
-            Spacer(modifier = Modifier.height(32.dp))
-        }
+        Spacer(modifier = Modifier.height(32.dp))
     }
 }

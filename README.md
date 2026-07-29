@@ -13,16 +13,41 @@
   <img src="https://img.shields.io/badge/Android-SDK%2034%2B-brightgreen.svg" alt="Android SDK" />
   <img src="https://img.shields.io/badge/Language-Kotlin%20100%25-blue.svg" alt="Kotlin" />
   <img src="https://img.shields.io/badge/UI-Jetpack%20Compose%20M3-purple.svg" alt="Jetpack Compose" />
-  <img src="https://img.shields.io/badge/CI%2FCD-GitHub%20Actions-orange.svg" alt="GitHub Actions" />
+  <img src="https://img.shields.io/badge/CI%2FCD-GitHub%20Actions%20%28production%29-orange.svg" alt="GitHub Actions" />
 </p>
 
 ---
 
-## 🌟 ویژگی‌های کلیدی و بهینه‌سازی‌ها | Key Features & Optimizations
+## 🌟 ویژگی‌های جدید و پیشرفته | Latest Features & Enhancements
+
+### 🔀 دکمه پخش تصادفی سریع (Quick Shuffle Buttons)
+* **شفل یک‌لمسی در صفحه اصلی**: افزودن دکمه شفل مستقیم (Shuffle) روی کارت‌های «علاقه‌مندی‌ها» و «کل آهنگ‌ها» در صفحه خانه جهت شروع پخش تصادفی بدون نیاز به ورود به لیست.
+* **پخش دیوانه‌وار لیست‌ها**: پشتیبانی کامل از شفل آنی در تمام لیست‌های تفکیک‌شده و فیلتر شده.
+
+### 🎛️ اکولایزر پیشرفته و افکت‌های صوتی DSP (Advanced Equalizer & Sound FX)
+* **حالت پیش‌فرض خاموش (Default OFF State)**: اکولایزر به طور پیش‌فرض خاموش است تا اصالت صدای اصلی حفظ شود و کاربر در صورت نیاز آن را فعال کند.
+* **یکپارچه‌سازی نوار عنوان (Unified Toolbar Navigation)**: انتقال عنوان اکولایزر به TopAppBar اصلی برنامه و حذف عناصر اضافی برگشت جهت تجربه‌ کاربری یکدست.
+* **پروفایل‌های صوتی سریع (Quick Sound Profiles)**: تغییر حالت صوتی با یک لمس برای «حالت هدفون»، «بیس ماشین»، «اسپیکر قوی» و «پادکست/وکال».
+* **نمودار فرکانسی زنده (Live Frequency Curve Canvas)**: رسم منحنی پاسخ فرکانسی زنده با قابلیت شخصی‌سازی رنگ نئونی نمودار.
+* **افکت‌های صوتی پیشرفته (DSP Effects)**:
+  * **Bass Boost**: تقویت عمیق فرکانس‌های پایین
+  * **3D Spatializer**: سه‌بعدی‌سازی و گسترش میدان استریو
+  * **Loudness Enhancer**: افزایش قدرتمند حجم صدای خروجی (Volume Punch)
+  * **Reverb Environment**: طنین محیطی (اتاق کوچک، سالن بزرگ، کنسرت، Plate)
+  * **Stereo Balance**: تنظیم دقیق بالانس باند چپ و راست هدفون (L/R)
+* **ذخیره و مدیریت پیش‌فرض‌های شخصی (Custom Preset Manager)**.
+
+### ⚙️ گردش کاری اختصاصی CI/CD روی شاخه Production (GitHub Actions Workflow)
+* **بیلد خودکار روی Branch `production`**: تنظیم اکشن GitHub Actions جهت کامپایل و بیلد خودکار فایل‌های APK و Android App Bundle (AAB) تنها زمانی که تغییرات روی شاخه `production` پوش شوند.
+* **خروجی‌های مستقیم (Artifacts)**: ارائه لینک دانلود مستقیم نسخه Debug APK، Release APKs و Release AAB در رزومه‌های بیلد.
+
+---
+
+## 🌟 سایر ویژگی‌های کلیدی | Key General Features
 
 ### ⚡ بهینه‌سازی کارایی و سرعت (High Performance & Smooth Scrolling)
 * **رابط کاربری بدون لگ (Zero Lag Library)**: بازطراحی کامل لیست کتابخانه با کلیدهای یکتا و پایدار (`key = { it.id }`) جهت پیمایش فوق‌العاده روان حتی در کتابخانه‌های با هزاران آهنگ.
-* **ترتیب پیش‌فرض جدیدترین‌ها (Recently Added Default)**: نمایش خودکار آهنگ‌های اخیراً اضافه شده در بالای کتابخانه به‌جای ترتیب الفبایی.
+* **ترتیب پیش‌فرض جدیدترین‌ها (Recently Added Default)**: نمایش خودکار آهنگ‌های اخیراً اضافه شده در بالای کتابخانه.
 * **نشانگر بارگذاری و اسکن حافظه (Scan Loading Indicators)**: نمایش لودینگ و نوار پیشرفت زنده هنگام باز شدن برنامه و اسکن فایل‌های صوتی حافظه.
 
 ### 📱 پشتیبانی کامل از تبلت‌ها و مانیتورهای خودرو (Tablet & Car Screen Responsive Layout)
@@ -30,7 +55,7 @@
 * **سازگاری کامل با سیستم صوتی و مانیتور خودرو**: دکمه‌های کنترل بزرگ و خوانا با کنتراست بالا برای استفاده راحت هنگام رانندگی.
 
 ### 🔤 تایپوگرافی اختصاصی و فونت وزیرمتن (Vazirmatn Persian Typography)
-* **فونت وزیرمتن فارسی (Vazirmatn Font)**: استفاده مستقیم از فونت زیبای وزیرمتن در تمامی وزن‌ها (Normal, Medium, SemiBold, Bold) جهت نمایش استاندارد و چشم‌نواز متون فارسی.
+* **فونت وزیرمتن فارسی (Vazirmatn Font)**: استفاده مستقیم از فونت زیبای وزیرمتن در تمامی وزن‌ها جهت نمایش استاندارد و چشم‌نواز متون فارسی.
 
 ### 🧠 شفل هوشمند و الگوریتم‌های هوش مصنوعی (Smart AI Shuffle)
 * **Smart Shuffle**: پخش هوشمند ترانه‌ها بر اساس زمان روز (صبح، عصر، شب)، میزان استقبال شما از آهنگ‌ها و الگوی اخیر.
@@ -41,17 +66,10 @@
 * **جستجوی صوتی (Hands-Free Voice Search)**: امکان پخش مستقیم ترانه با گفتن نام آهنگ یا خواننده.
 * **ژست‌های حرکتی سریع (Swipe Gestures)**: تعویض آهنگ با کشیدن انگشت روی کارت پخش به سمت چپ یا راست.
 * **کنتراست بالای شب (AMOLED Night Vision)**: تم تاریک خالص با کنتراست فوق‌العاده بالا برای عدم ایجاد چشم‌زدگی در تاریکی خودرو.
-* **بیس بوستر سریع رانندگی (⚡ Drive Bass Boost)**: فعال‌سازی بیس قوی سیستم صوتی خودرو تنها با یک لمس.
 
 ### 🎨 انیمیشن‌ها و تم‌های بصری قابل شخصی‌سازی (Customizable Animations & Themes)
-* **کنترل سبک انیمیشن (Animation Motion Styles)**: Dynamic Spring, Smooth Slide, Soft Fade, Bounce Accent و حالت خاموش (Instant) برای دستگاه‌های قدیمی‌تر.
+* **کنترل سبک انیمیشن (Animation Motion Styles)**: Dynamic Spring, Smooth Slide, Soft Fade, Bounce Accent و حالت خاموش (Instant).
 * **۹ پوسته و تم رنگی خیره‌کننده**: بنفش نئونی، کهربایی، زمردی، آبی اقیانوسی، رز و شرابی، مشکی خالص (AMOLED)، هلویی، خاکستری نوردیک و تم پویای اندروید (Material You).
-
-### 🎛️ اکولایزر ۱۰ بانده و افکت‌های صوتی DSP (10-Band Equalizer & Audio FX)
-* **تنظیمات دقیق فرکانسی**: اکولایزر ۱۰ بانده حرفه‌ای با پیش‌فرض‌های سبک‌های مختلف همراه با Bass Boost و 3D Virtualizer.
-
-### ⚙️ گردش کاری هوشمند GitHub Actions (CI/CD Pipeline)
-* **ساخت خودکار برنامه (Automated Build Workflow)**: اکشن اختصاصی GitHub Actions برای کامپایل، تست و خروجی گرفتن خودکار فایل‌های Debug APK, Release APKs و Android App Bundle (AAB) در هر Push و Pull Request.
 
 ---
 
@@ -64,7 +82,7 @@
 * **تنظیمات برنامه (Preferences)**: Jetpack DataStore Preferences
 * **سرویس پخش صدا (Audio Engine)**: Media3 / ExoPlayer + AudioEffect DSP Pipeline
 * **معماری نرم‌افزار**: MVVM + Clean Architecture + StateFlow & Coroutines
-* **اتوماسیون و CI/CD**: GitHub Actions (JDK 17 + Gradle setup)
+* **اتوماسیون و CI/CD**: GitHub Actions (Production Branch Target, JDK 17 + Gradle setup)
 
 ---
 
@@ -93,4 +111,3 @@
 
 توسعه داده شده توسط **دانیال چوپان** (Danial Choopan).
 طراحی شده با عشق برای تجربه عالی شنیدن موسیقی! ❤️
-

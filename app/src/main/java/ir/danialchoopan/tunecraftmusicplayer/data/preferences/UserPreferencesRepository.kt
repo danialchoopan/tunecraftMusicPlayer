@@ -34,6 +34,8 @@ class UserPreferencesRepository(private val context: Context) {
         val EQ_BASS = intPreferencesKey("eq_bass")
         val EQ_VIRTUALIZER = intPreferencesKey("eq_virtualizer")
         val EQ_BALANCE = floatPreferencesKey("eq_balance")
+        val EQ_REVERB = intPreferencesKey("eq_reverb")
+        val EQ_LOUDNESS_BOOST = intPreferencesKey("eq_loudness_boost")
         val LAST_PLAYED_SONG_ID = longPreferencesKey("last_played_song_id")
         val LAST_PLAYED_POSITION = longPreferencesKey("last_played_position")
     }
@@ -62,6 +64,8 @@ class UserPreferencesRepository(private val context: Context) {
     val eqBass: Flow<Int> = context.dataStore.data.map { it[EQ_BASS] ?: 0 }
     val eqVirtualizer: Flow<Int> = context.dataStore.data.map { it[EQ_VIRTUALIZER] ?: 0 }
     val eqBalance: Flow<Float> = context.dataStore.data.map { it[EQ_BALANCE] ?: 0f }
+    val eqReverb: Flow<Int> = context.dataStore.data.map { it[EQ_REVERB] ?: 0 }
+    val eqLoudnessBoost: Flow<Int> = context.dataStore.data.map { it[EQ_LOUDNESS_BOOST] ?: 0 }
 
     val lastSongId: Flow<Long> = context.dataStore.data.map { it[LAST_PLAYED_SONG_ID] ?: -1L }
     val lastPosition: Flow<Long> = context.dataStore.data.map { it[LAST_PLAYED_POSITION] ?: 0L }
@@ -90,6 +94,8 @@ class UserPreferencesRepository(private val context: Context) {
     suspend fun setEqBass(bass: Int) { context.dataStore.edit { it[EQ_BASS] = bass } }
     suspend fun setEqVirtualizer(v: Int) { context.dataStore.edit { it[EQ_VIRTUALIZER] = v } }
     suspend fun setEqBalance(b: Float) { context.dataStore.edit { it[EQ_BALANCE] = b } }
+    suspend fun setEqReverb(reverb: Int) { context.dataStore.edit { it[EQ_REVERB] = reverb } }
+    suspend fun setEqLoudnessBoost(boost: Int) { context.dataStore.edit { it[EQ_LOUDNESS_BOOST] = boost } }
 
     suspend fun setLastSession(songId: Long, position: Long) {
         context.dataStore.edit {

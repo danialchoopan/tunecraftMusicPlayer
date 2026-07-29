@@ -19,6 +19,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import ir.danialchoopan.tunecraftmusicplayer.data.local.entity.PlaylistEntity
 import ir.danialchoopan.tunecraftmusicplayer.data.local.entity.SongEntity
 import ir.danialchoopan.tunecraftmusicplayer.ui.components.AddToPlaylistDialog
@@ -63,56 +64,32 @@ fun LibraryScreen(
 
     var songToAddToPlaylist by remember { mutableStateOf<SongEntity?>(null) }
 
-    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-        val isWideScreen = maxWidth > 600.dp
+    PullToRefreshBox(
+        isRefreshing = isScanning,
+        onRefresh = onRescanMedia,
+        modifier = Modifier.fillMaxSize()
+    ) {
+        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+            val isWideScreen = maxWidth > 600.dp
 
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp)
-        ) {
-            // Top Title & Rescan Action
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp)
             ) {
-                Column {
+                if (isScanning) {
                     Text(
-                        text = if (isPersian) "کتابخانه موسیقی" else "Music Library",
-                        style = MaterialTheme.typography.displayLarge,
-                        fontWeight = FontWeight.Bold
+                        text = if (isPersian) "در حال اسکن و بارگذاری موزیک‌ها..." else "Scanning & loading music...",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(bottom = 4.dp)
                     )
-                    if (isScanning) {
-                        Text(
-                            text = if (isPersian) "در حال اسکن و بارگذاری موزیک‌ها..." else "Scanning & loading music...",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
+                    LinearProgressIndicator(
+                        modifier = Modifier.fillMaxWidth().height(4.dp),
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
                 }
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (isScanning) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(24.dp).padding(end = 8.dp),
-                            strokeWidth = 2.dp
-                        )
-                    }
-                    IconButton(onClick = onRescanMedia) {
-                        Icon(imageVector = Icons.Default.Refresh, contentDescription = "Rescan")
-                    }
-                }
-            }
-
-            if (isScanning) {
-                Spacer(modifier = Modifier.height(8.dp))
-                LinearProgressIndicator(
-                    modifier = Modifier.fillMaxWidth().height(4.dp),
-                    color = MaterialTheme.colorScheme.primary
-                )
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
 
             if (!hasAudioPermission) {
                 Card(
@@ -229,26 +206,6 @@ fun LibraryScreen(
 
             when (selectedTab) {
                 0 -> {
-                    // Filter & Sort Controls for Songs
-                    OutlinedTextField(
-                        value = searchQuery,
-                        onValueChange = { searchQuery = it },
-                        placeholder = { Text(if (isPersian) "جستجوی موزیک یا خواننده..." else "Search tracks or artists...") },
-                        leadingIcon = { Icon(imageVector = Icons.Default.Search, contentDescription = null) },
-                        trailingIcon = {
-                            if (searchQuery.isNotEmpty()) {
-                                IconButton(onClick = { searchQuery = "" }) {
-                                    Icon(imageVector = Icons.Default.Clear, contentDescription = "Clear")
-                                }
-                            }
-                        },
-                        singleLine = true,
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
                     // Sort Dropdown Row & Chips
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -561,6 +518,7 @@ fun LibraryScreen(
             onAddToPlaylist = { pId, sId -> onAddToPlaylist(pId, sId) },
             onCreatePlaylistAndAdd = { name, sId -> onCreatePlaylistAndAdd(name, sId) }
         )
+    }
     }
 }
 

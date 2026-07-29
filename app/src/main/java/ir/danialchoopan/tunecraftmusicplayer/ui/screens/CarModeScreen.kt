@@ -39,6 +39,15 @@ import ir.danialchoopan.tunecraftmusicplayer.ui.components.SwipeableTrackContain
 import java.text.SimpleDateFormat
 import java.util.*
 
+/**
+ * Automotive Car Mode Interface.
+ *
+ * Developer & Ergonomic Notes:
+ * 1. Ultra-Large Touch Targets: Play/Pause button expanded to 92dp, Next/Prev buttons to 64dp-72dp for safety while driving.
+ * 2. Voice Search Command Handler: Integrates Android `RecognizerIntent.ACTION_RECOGNIZE_SPEECH` for hands-free song playback.
+ * 3. Vehicle Head Unit Adaptability: Adapts seamlessly to 16:9 widescreen landscape automotive displays and standard portrait setups.
+ * 4. High Contrast UI: Employs deep dark tones with vibrant high-contrast action colors to eliminate glares in vehicle cabins.
+ */
 @Composable
 fun CarModeScreen(
     playerState: PlayerState,

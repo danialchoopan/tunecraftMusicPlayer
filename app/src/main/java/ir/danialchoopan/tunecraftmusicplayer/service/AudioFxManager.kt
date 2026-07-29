@@ -3,6 +3,8 @@ package ir.danialchoopan.tunecraftmusicplayer.service
 import android.content.Context
 import android.media.audiofx.BassBoost
 import android.media.audiofx.Equalizer
+import android.media.audiofx.LoudnessEnhancer
+import android.media.audiofx.PresetReverb
 import android.media.audiofx.Virtualizer
 import android.media.audiofx.Visualizer
 import ir.danialchoopan.tunecraftmusicplayer.data.preferences.UserPreferencesRepository
@@ -20,6 +22,8 @@ data class EqualizerState(
     val bandLevels: List<Int> = List(5) { 0 }, // -12dB to +12dB
     val bassBoost: Int = 0, // 0 to 100
     val virtualizer: Int = 0, // 0 to 100
+    val loudnessBoost: Int = 0, // 0 to 100
+    val reverbPreset: Int = 0, // 0 = None, 1 = Small Room, 2 = Large Room, 3 = Medium Hall, 4 = Large Hall, 5 = Plate
     val balance: Float = 0f, // -1.0 (Left) to +1.0 (Right)
     val presetName: String = "Flat"
 )
@@ -33,6 +37,8 @@ class AudioFxManager(
     private var equalizer: Equalizer? = null
     private var bassBoostEffect: BassBoost? = null
     private var virtualizerEffect: Virtualizer? = null
+    private var presetReverbEffect: PresetReverb? = null
+    private var loudnessEnhancerEffect: LoudnessEnhancer? = null
     private var visualizer: Visualizer? = null
 
     private val _state = MutableStateFlow(EqualizerState())
@@ -80,6 +86,18 @@ class AudioFxManager(
                 _state.value = _state.value.copy(balance = b)
             }
         }
+        scope.launch {
+            preferencesRepository.eqReverb.collect { r ->
+                _state.value = _state.value.copy(reverbPreset = r)
+                applySettings()
+            }
+        }
+        scope.launch {
+            preferencesRepository.eqLoudnessBoost.collect { l ->
+                _state.value = _state.value.copy(loudnessBoost = l)
+                applySettings()
+            }
+        }
     }
 
     fun setAudioSessionId(audioSessionId: Int) {
@@ -96,6 +114,20 @@ class AudioFxManager(
             }
             virtualizerEffect = Virtualizer(0, audioSessionId).apply {
                 enabled = _state.value.isEnabled
+            }
+            try {
+                presetReverbEffect = PresetReverb(0, audioSessionId).apply {
+                    enabled = _state.value.isEnabled
+                }
+            } catch (e: Exception) {
+                presetReverbEffect = null
+            }
+            try {
+                loudnessEnhancerEffect = LoudnessEnhancer(audioSessionId).apply {
+                    enabled = _state.value.isEnabled
+                }
+            } catch (e: Exception) {
+                loudnessEnhancerEffect = null
             }
 
             equalizer?.let { eq ->
@@ -173,6 +205,20 @@ class AudioFxManager(
         applySettings()
     }
 
+    fun setReverbPreset(preset: Int) {
+        val clamped = preset.coerceIn(0, 5)
+        _state.value = _state.value.copy(reverbPreset = clamped)
+        scope.launch { preferencesRepository.setEqReverb(clamped) }
+        applySettings()
+    }
+
+    fun setLoudnessBoost(value: Int) {
+        val clamped = value.coerceIn(0, 100)
+        _state.value = _state.value.copy(loudnessBoost = clamped)
+        scope.launch { preferencesRepository.setEqLoudnessBoost(clamped) }
+        applySettings()
+    }
+
     fun setBalance(value: Float) {
         val clamped = value.coerceIn(-1f, 1f)
         _state.value = _state.value.copy(balance = clamped)
@@ -226,6 +272,29 @@ class AudioFxManager(
                     virt.setStrength(strength)
                 }
             }
+            presetReverbEffect?.let { rev ->
+                rev.enabled = currentState.isEnabled && currentState.reverbPreset > 0
+                if (currentState.isEnabled && currentState.reverbPreset > 0) {
+                    val revPresetMap = mapOf(
+                        1 to PresetReverb.PRESET_SMALLROOM,
+                        2 to PresetReverb.PRESET_LARGEROOM,
+                        3 to PresetReverb.PRESET_MEDIUMHALL,
+                        4 to PresetReverb.PRESET_LARGEHALL,
+                        5 to PresetReverb.PRESET_PLATE
+                    )
+                    revPresetMap[currentState.reverbPreset]?.let { p ->
+                        rev.preset = p
+                    }
+                }
+            }
+            loudnessEnhancerEffect?.let { le ->
+                le.enabled = currentState.isEnabled && currentState.loudnessBoost > 0
+                if (currentState.isEnabled && currentState.loudnessBoost > 0) {
+                    // 0..100 maps to 0..800 mB gain
+                    val gainMb = (currentState.loudnessBoost * 8f).toInt()
+                    le.setTargetGain(gainMb)
+                }
+            }
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -239,6 +308,10 @@ class AudioFxManager(
             bassBoostEffect = null
             virtualizerEffect?.release()
             virtualizerEffect = null
+            presetReverbEffect?.release()
+            presetReverbEffect = null
+            loudnessEnhancerEffect?.release()
+            loudnessEnhancerEffect = null
             visualizer?.release()
             visualizer = null
         } catch (e: Exception) {

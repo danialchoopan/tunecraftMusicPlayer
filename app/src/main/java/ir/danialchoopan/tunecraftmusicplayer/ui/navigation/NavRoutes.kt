@@ -10,4 +10,6 @@ sealed class Screen(val route: String, val titleEn: String, val titleFa: String)
     object Equalizer : Screen("equalizer", "Equalizer", "اکولایزر")
     object CarMode : Screen("carmode", "Car Mode", "حالت ماشین")
     object About : Screen("about", "About Us", "درباره ما")
+    object FavoritesDetail : Screen("favorites_detail", "Favorites", "علاقه‌مندی‌ها")
+    object AllSongsDetail : Screen("all_songs_detail", "All Songs", "همه آهنگ‌ها")
 }

@@ -207,27 +207,6 @@ fun PlaylistsScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Header
-            item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = if (isPersian) "لیست‌های پخش" else "Playlists",
-                        style = MaterialTheme.typography.displayLarge,
-                        fontWeight = FontWeight.Bold
-                    )
-                    FloatingActionButton(
-                        onClick = { showCreateDialog = true },
-                        modifier = Modifier.size(48.dp)
-                    ) {
-                        Icon(imageVector = Icons.Default.Add, contentDescription = "Create Playlist")
-                    }
-                }
-            }
-
             // Quick Smart Collections Header
             item {
                 Text(

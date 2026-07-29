@@ -2,9 +2,9 @@ name: TuneCraft CI - Android Build & Artifacts
 
 on:
   push:
-    branches: [ "main", "master" ]
+    branches: [ "production" ]
   pull_request:
-    branches: [ "main", "master" ]
+    branches: [ "production" ]
 
 jobs:
   build:
@@ -47,4 +47,3 @@ jobs:
         with:
           name: TuneCraft-Release-AAB
           path: app/build/outputs/bundle/release/*.aab
-

@@ -13,8 +13,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.spring
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -24,6 +23,8 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Density
@@ -445,89 +446,46 @@ class MainActivity : ComponentActivity() {
                                                 )
                                             }
 
-                                            // Modern floating bottom navigation bar for portrait mode
+                                            // Modern floating NavigationBar for portrait mode
                                             if (!isLandscape) {
-                                                Surface(
+                                                val mainTabsList = listOf(
+                                                    Pair(Screen.Home, Icons.Default.Home),
+                                                    Pair(Screen.Library, Icons.Default.LibraryMusic),
+                                                    Pair(Screen.Playlists, Icons.Default.QueueMusic)
+                                                )
+                                                NavigationBar(
                                                     modifier = Modifier
                                                         .fillMaxWidth()
-                                                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                                                    shape = RoundedCornerShape(28.dp),
-                                                    color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.95f),
-                                                    tonalElevation = 8.dp,
-                                                    shadowElevation = 12.dp
+                                                        .padding(horizontal = 12.dp, vertical = 8.dp)
+                                                        .clip(RoundedCornerShape(28.dp))
+                                                        .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.88f)),
+                                                    containerColor = Color.Transparent,
+                                                    tonalElevation = 0.dp
                                                 ) {
-                                                    Row(
-                                                        modifier = Modifier
-                                                            .fillMaxWidth()
-                                                            .padding(horizontal = 8.dp, vertical = 4.dp),
-                                                        horizontalArrangement = Arrangement.SpaceEvenly,
-                                                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
-                                                    ) {
-                                                        data class NavItem(val screen: Screen, val icon: androidx.compose.ui.graphics.vector.ImageVector)
-                                                        val bottomNavItems = listOf(
-                                                            NavItem(Screen.Home, Icons.Default.Home),
-                                                            NavItem(Screen.Library, Icons.Default.LibraryMusic),
-                                                            NavItem(Screen.Playlists, Icons.Default.QueueMusic)
-                                                        )
-
-                                                        bottomNavItems.forEachIndexed { index, item ->
-                                                            val isSelected = currentRoute == Screen.Home.route && pagerState.currentPage == index
-
-                                                            // Animate colors smoothly on selection change
-                                                            val bgColor by animateColorAsState(
-                                                                targetValue = if (isSelected) MaterialTheme.colorScheme.primaryContainer else androidx.compose.ui.graphics.Color.Transparent,
-                                                                animationSpec = spring(dampingRatio = 0.7f, stiffness = 300f),
-                                                                label = "navBg"
-                                                            )
-                                                            val iconColor by animateColorAsState(
-                                                                targetValue = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                                                                animationSpec = spring(dampingRatio = 0.7f, stiffness = 300f),
-                                                                label = "navIcon"
-                                                            )
-
-                                                            Surface(
-                                                                onClick = {
-                                                                    if (currentRoute != Screen.Home.route) {
-                                                                        navController.navigate(Screen.Home.route) {
-                                                                            popUpTo(navController.graph.findStartDestination().id) {
-                                                                                saveState = true
-                                                                            }
-                                                                            launchSingleTop = true
-                                                                            restoreState = true
-                                                                        }
-                                                                    }
-                                                                    coroutineScope.launch { pagerState.animateScrollToPage(index) }
-                                                                },
-                                                                shape = RoundedCornerShape(22.dp),
-                                                                color = bgColor,
-                                                                modifier = Modifier.padding(horizontal = 2.dp)
-                                                            ) {
-                                                                Row(
-                                                                    modifier = Modifier.padding(
-                                                                        horizontal = if (isSelected) 20.dp else 16.dp,
-                                                                        vertical = 12.dp
-                                                                    ),
-                                                                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
-                                                                    horizontalArrangement = Arrangement.Center
-                                                                ) {
-                                                                    Icon(
-                                                                        imageVector = item.icon,
-                                                                        contentDescription = item.screen.titleEn,
-                                                                        tint = iconColor,
-                                                                        modifier = Modifier.size(22.dp)
-                                                                    )
-                                                                    if (isSelected) {
-                                                                        Spacer(modifier = Modifier.width(8.dp))
-                                                                        Text(
-                                                                            text = if (isPersian) item.screen.titleFa else item.screen.titleEn,
-                                                                            style = MaterialTheme.typography.labelMedium,
-                                                                            fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
-                                                                            color = MaterialTheme.colorScheme.onPrimaryContainer
-                                                                        )
+                                                    mainTabsList.forEachIndexed { index, (screen, icon) ->
+                                                        val selected = currentRoute == Screen.Home.route && pagerState.currentPage == index
+                                                        NavigationBarItem(
+                                                            selected = selected,
+                                                            onClick = {
+                                                                if (currentRoute != Screen.Home.route) {
+                                                                    navController.navigate(Screen.Home.route) {
+                                                                        popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                                                                        launchSingleTop = true
+                                                                        restoreState = true
                                                                     }
                                                                 }
-                                                            }
-                                                        }
+                                                                coroutineScope.launch { pagerState.animateScrollToPage(index) }
+                                                            },
+                                                            icon = { Icon(imageVector = icon, contentDescription = if (isPersian) screen.titleFa else screen.titleEn) },
+                                                            label = { Text(if (isPersian) screen.titleFa else screen.titleEn, style = MaterialTheme.typography.labelMedium) },
+                                                            colors = NavigationBarItemDefaults.colors(
+                                                                selectedIconColor = MaterialTheme.colorScheme.primary,
+                                                                selectedTextColor = MaterialTheme.colorScheme.primary,
+                                                                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                                                                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                                                                indicatorColor = MaterialTheme.colorScheme.primaryContainer
+                                                            )
+                                                        )
                                                     }
                                                 }
                                             }

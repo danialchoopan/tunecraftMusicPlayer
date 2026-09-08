@@ -1,21 +1,58 @@
-# Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.
-#
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
+# ─── TuneCraft Music Player — ProGuard / R8 Rules ─────────────────────────
+# This file is used for release builds (minifyEnabled = true).
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# ─── Jetpack Compose ─────────────────────────────────────────────────────
+-keep class androidx.compose.** { *; }
+-dontwarn androidx.compose.**
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+# ─── Room (KSP) ──────────────────────────────────────────────────────────
+-keep class * extends androidx.room.RoomDatabase
+-keep @androidx.room.Entity class *
+-dontwarn androidx.room.**
+-keepclassmembers class * {
+    @androidx.room.* <fields>;
+}
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# ─── Moshi (JSON serialization) ──────────────────────────────────────────
+-keep class ir.danialchoopan.tunecraftmusicplayer.data.local.entity.** { *; }
+-keep class ir.danialchoopan.tunecraftmusicplayer.service.PlayerState { *; }
+-keep class ir.danialchoopan.tunecraftmusicplayer.service.EqualizerState { *; }
+-dontwarn com.squareup.moshi.**
+-keep class com.squareup.moshi.** { *; }
+
+# ─── Coil (image loading) ────────────────────────────────────────────────
+-dontwarn coil.**
+-keep class coil.** { *; }
+
+# ─── Media3 / ExoPlayer ──────────────────────────────────────────────────
+-dontwarn androidx.media3.**
+-keep class androidx.media3.** { *; }
+
+# ─── Retrofit + OkHttp ───────────────────────────────────────────────────
+-dontwarn retrofit2.**
+-keep class retrofit2.** { *; }
+-dontwarn okhttp3.**
+-keep class okhttp3.** { *; }
+-dontwarn okio.**
+
+# ─── Firebase ────────────────────────────────────────────────────────────
+-keep class com.google.firebase.** { *; }
+-dontwarn com.google.firebase.**
+
+# ─── Kotlin Coroutines ───────────────────────────────────────────────────
+-keepnames class kotlinx.coroutines.internal.MainDispatcherFactory {}
+-keepnames class kotlinx.coroutines.CoroutineExceptionHandler {}
+-keepclassmembers class kotlinx.coroutines.** {
+    volatile <fields>;
+}
+-dontwarn kotlinx.coroutines.**
+
+# ─── Gson / DataStore / misc ─────────────────────────────────────────────
+-keep class * implements android.os.Parcelable { *; }
+-keepclassmembers class * {
+    @android.webkit.JavascriptInterface <methods>;
+}
+
+# ─── Debug info (optional — keeps line numbers for crash reports) ────────
+-keepattributes SourceFile,LineNumberTable
+-renamesourcefileattribute SourceFile

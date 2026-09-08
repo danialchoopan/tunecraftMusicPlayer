@@ -1,163 +1,209 @@
-# TuneCraft Music Player
+# TuneCraft Music Player 🎵
 
 <div align="center">
 
-[![Android SDK](https://img.shields.io/badge/Android-SDK%2024--36-brightgreen.svg)]()
-[![Kotlin](https://img.shields.io/badge/Language-Kotlin%20100%25-blue.svg)]()
-[![UI](https://img.shields.io/badge/UI-Jetpack%20Compose%20M3-purple.svg)]()
+[![Android SDK](https://img.shields.io/badge/Android-API%2024--36-brightgreen.svg)]()
+[![Kotlin](https://img.shields.io/badge/Kotlin-100%25-blue.svg)]()
+[![Jetpack Compose](https://img.shields.io/badge/UI-Compose%20M3-purple.svg)]()
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)]()
+[![Release](https://img.shields.io/badge/Release-v1.0.0-orange.svg)]()
 
-A modern, feature-rich Android music player built with Jetpack Compose, Material Design 3, and ExoPlayer.
+**A modern, offline-first Android music player with 14 themes, equalizer, car mode, and Android Auto support.**
 
 </div>
 
-## Features
+---
 
-### Playback
-- **High-quality audio engine** powered by Media3 ExoPlayer
-- **10-band Equalizer** with 13 presets + custom presets
-- **DSP Effects**: Bass Boost, 3D Virtualizer, Loudness Enhancer, Reverb
-- **Playback speed control** (0.5x to 2.0x) with pitch preservation
-- **Sleep timer** with customizable countdown
-- **Smart shuffle** modes (Standard, Balanced Artists, Favorites Priority, Fresh Tracks)
-- **Repeat modes**: Off, All, One
-- **Audio bookmarking** for quick navigation
-- **Swipe gestures** to change tracks
+## ✨ Features
 
-### Library Management
-- **Automatic media scanning** on startup
+### 🎧 Playback
+- **Media3 ExoPlayer engine** — gapless-ready, high-quality audio
+- **10-band Equalizer** with 13 presets + unlimited custom presets
+- **DSP Effects**: Bass Boost, 3D Virtualizer, Loudness Enhancer, Reverb (6 environments)
+- **Playback speed**: 0.5x–2.0x with pitch preservation
+- **Sleep timer** (15/30/45/60 min or custom)
+- **4 shuffle modes**: Standard, Balanced Artists, Favorites Priority, Fresh Tracks
+- **3 repeat modes**: Off, All, One
+- **Audio bookmarks** — save positions to jump back later
+- **Swipe gestures** — drag left/right to skip tracks with live preview card
+
+### 📚 Library
+- **Auto-scan** device storage on launch
 - **Smart playlists**: Recently Played, Most Played, Recently Added, Favorites
-- **Custom playlist creation** with rename and delete
-- **Tag editing** for title, artist, album, genre, year, lyrics
-- **Audio trimming** to create ringtones/clips
-- **Library backup & restore** via JSON export/import
-- **Search** with 10 filter types (title, artist, album, genre, year, bitrate, etc.)
+- **Custom playlists** with rename, delete, reorder
+- **Tag editing** — title, artist, album, genre, year, lyrics
+- **Audio trimmer** — create ringtones/clips
+- **JSON backup & restore** — never lose your favorites and play counts
+- **Search** with 10 filter types (title, artist, album, genre, year, bitrate, file size)
 
-### UI & Experience
-- **Bilingual interface**: English & Persian (RTL support)
-- **14 color themes**: Dark Violet, Cyberpunk, Royal Gold, Crimson Lava, Sunset Amber, Emerald Forest, Ocean Sapphire, Rose Velvet, AMOLED Pitch Black, Sakura Blossom, Mint Breeze, Warm Peach, Nordic Slate, Material You
-- **Adaptive layout**: Phone, Tablet, and Car Head Unit support
-- **Car Mode**: Large touch targets (92dp), voice search, high contrast
-- **Lyrics viewer** with LRC synchronized display
-- **Listening statistics** with weekly charts and top artists/genres
+### 🎨 UI & Personalization
+- **Bilingual**: English & Persian (full RTL support)
+- **14 color themes**: Dark Violet, Cyberpunk, Gold, Lava, Sunset, Forest, Ocean, Rose, AMOLED, Sakura, Mint, Warm Peach, Nordic, Material You
 - **5 Glance widgets**: Minimal Player, Full Player, Car Mode, Queue, Stats
-- **Visualizer** with 4 modes (waveform, spectrum, circular, bars)
-- **Animations**: Spring, Slide, Fade, Bounce — configurable speed
+- **4 visualizer modes**: waveform, spectrum, circular, bars
+- **Custom animations**: Spring, Slide, Fade, Bounce — adjustable speed
 - **Font scaling** for accessibility
+- **Adaptive layout**: Phone portrait, tablet landscape, car head units
 
-### Platform Integration
-- **Android Auto** support via MediaLibraryService
-- **System Media Panel** (Android 10+ lock screen & quick settings)
-- **Bluetooth** automatic pause on disconnect
-- **Notification playback controls**
-- **External intent handling** (open audio files from file managers)
+### 🚗 Car Mode
+- **Ultra-large touch targets** — 92dp play button for safe driving
+- **Voice search** — say song or artist name to play hands-free
+- **High contrast AMOLED theme** — eliminates glare in vehicles
+- **Quick drive shortcuts**: Bass Boost, Favorites, Recently Played, Shuffle All
+- **Live clock** display
 
-## Tech Stack
+### 🔌 Platform Integration
+- **Android Auto** via MediaLibraryService
+- **System Media Panel** — Android 10+ lock screen & quick settings
+- **Bluetooth auto-pause** on disconnect
+- **Notification controls** with album art
+- **External intent handling** — open audio files from any file manager
+
+---
+
+## 📸 Screenshots
+
+<p align="center">
+  <i>Screenshots coming soon — build the app to see it in action!</i>
+</p>
+
+---
+
+## 🛠 Tech Stack
 
 | Layer | Technology |
 |-------|-----------|
-| Language | Kotlin 100% |
-| UI | Jetpack Compose + Material Design 3 |
-| Audio Engine | Media3 ExoPlayer + AudioEffect DSP |
-| Local Storage | Room Database + DataStore Preferences |
-| Image Loading | Coil |
-| Architecture | MVVM + Repository pattern |
-| DI | Manual singleton (lightweight) |
+| Language | **Kotlin** 100% |
+| UI | **Jetpack Compose** + **Material Design 3** |
+| Audio | **Media3 ExoPlayer** + Android AudioEffect DSP |
+| Database | **Room** (KSP) + **DataStore Preferences** |
+| Images | **Coil** (Compose-optimized) |
+| Architecture | **MVVM** + Repository pattern (manual DI) |
 | CI/CD | GitHub Actions |
 | Testing | Robolectric, Roborazzi, JUnit |
 
-## Architecture
+---
+
+## 🏗 Architecture
 
 ```
 MainActivity (Single Activity)
-├── NavHost (8 routes)
-│   ├── HomeScreen (HorizontalPager with 3 tabs)
-│   ├── SearchScreen
-│   ├── StatisticsScreen
-│   ├── SettingsScreen
-│   ├── EqualizerScreen
-│   ├── CarModeScreen
-│   ├── AboutScreen
-│   ├── FavoritesDetailScreen
-│   └── AllSongsDetailScreen
-├── MiniPlayer (bottom bar)
-├── NowPlayingSheet (modal bottom sheet)
+├── NavHost (11 routes)
+│   ├── HomeScreen ─── HorizontalPager (3 tabs)
+│   ├── SearchScreen, StatisticsScreen, SettingsScreen
+│   ├── EqualizerScreen, CarModeScreen, AboutScreen
+│   ├── FavoritesDetailScreen, AllSongsDetailScreen
+├── MiniPlayer (animated bottom bar)
+├── NowPlayingSheet (modal bottom sheet — 3 tabs)
 └── Dialogs (TagEdit, AddToPlaylist, AudioTrimmer)
 
 TuneCraftMediaService (MediaLibraryService)
 ├── ExoPlayer (playback engine)
-└── AudioFxManager (DSP effects pipeline)
+└── AudioFxManager (5 DSP effects — debounced)
 
 Data Layer
 ├── Room Database (6 entities, 5 DAOs)
 ├── DataStore Preferences (30+ settings)
-└── MusicRepository (media scanning + CRUD)
+└── MusicRepository (scanning + CRUD + backup)
 ```
 
-## Building
+---
+
+## 🚀 Building for Release
 
 ### Prerequisites
-- Android Studio Ladybug (2024.2) or newer
-- JDK 17
-- Android SDK 34+
+- **Android Studio** Ladybug (2024.2) or newer
+- **JDK 17**
+- **Android SDK** 34+
 
-### Steps
-
+### Debug Build
 ```bash
-# Clone the repository
-git clone https://github.com/danialchoopan/TuneCraftMusicPlayer.git
-
-# Open in Android Studio, then sync Gradle
-
-# Build debug APK
 ./gradlew assembleDebug
+```
+APK location: `app/build/outputs/apk/debug/`
 
-# Build release APK
-./gradlew assembleRelease
+### Release Build
+1. Generate a signing key:
+   ```bash
+   keytool -genkey -v -keystore my-upload-key.jks \
+     -keyalg RSA -keysize 2048 -validity 10000 -alias upload
+   ```
 
-# Run tests
-./gradlew test
+2. Set environment variables (or the build will fall back to debug keystore):
+   ```bash
+   export KEYSTORE_PATH=/path/to/my-upload-key.jks
+   export STORE_PASSWORD=your_store_password
+   export KEY_PASSWORD=your_key_password
+   ```
+
+3. Build:
+   ```bash
+   ./gradlew assembleRelease
+   ```
+   APK: `app/build/outputs/apk/release/`
+   AAB: `app/build/outputs/bundle/release/`
+
+### Running Tests
+```bash
+./gradlew test                       # Unit tests
+./gradlew connectedAndroidTest       # Instrumented tests
 ```
 
-## Project Structure
+---
+
+## 📁 Project Structure
 
 ```
-app/
-├── src/main/java/ir/danialchoopan/tunecraftmusicplayer/
-│   ├── MainActivity.kt          # Single activity host
-│   ├── TuneCraftApplication.kt   # Application class
-│   ├── data/
-│   │   ├── local/
-│   │   │   ├── TuneCraftDatabase.kt
-│   │   │   ├── dao/              # Room DAOs
-│   │   │   └── entity/           # Room entities
-│   │   ├── preferences/          # DataStore preferences
-│   │   └── repository/           # MusicRepository
-│   ├── service/
-│   │   ├── TuneCraftMediaService.kt  # Media3 playback service
-│   │   └── AudioFxManager.kt        # DSP effects manager
-│   ├── ui/
-│   │   ├── components/           # Reusable composables
-│   │   ├── navigation/           # NavRoutes
-│   │   ├── screens/              # Feature screens
-│   │   └── theme/                # Colors, typography, themes
-│   ├── util/                     # Utilities
-│   └── widgets/                  # Glance widgets
-├── src/test/                     # Unit tests
-└── src/androidTest/              # Instrumented tests
+app/src/main/java/ir/danialchoopan/tunecraftmusicplayer/
+├── MainActivity.kt          # Single-activity host + navigation
+├── TuneCraftApplication.kt   # Application class (manual DI)
+├── data/
+│   ├── local/
+│   │   ├── TuneCraftDatabase.kt   # Room DB (v2, migration-aware)
+│   │   ├── dao/                    # 5 DAO interfaces
+│   │   └── entity/                 # 6 Room entities
+│   ├── preferences/                # DataStore (30+ settings)
+│   └── repository/                 # MusicRepository
+├── service/
+│   ├── TuneCraftMediaService.kt   # Media3 playback service
+│   └── AudioFxManager.kt          # DSP pipeline
+├── ui/
+│   ├── components/        # Reusable composables
+│   ├── navigation/        # Screen routes
+│   ├── screens/           # Feature screens (9 total)
+│   └── theme/             # 14 color schemes + typography
+├── util/                  # Battery helper, audio trimmer
+└── widgets/               # 5 Glance widgets
 ```
 
-## Future Roadmap
+---
 
-- [ ] Cloud sync for playlists and preferences
+## 📋 Future Roadmap
+
+- [ ] Cloud sync (playlists & preferences)
 - [ ] Gapless playback
 - [ ] Crossfade transitions
-- [ ] Android Auto browsing (folder/genre/artist hierarchy)
+- [ ] Android Auto full browsing (folder/genre/artist)
 - [ ] Song deduplication
-- [ ] Playlist auto-save on app close
-- [ ] Cover art downloader
 - [ ] Collaborative playlists
+- [ ] Cover art downloader
 
-## License
+---
 
-Developed by [Danial Choopan](https://github.com/danialchoopan). Built with passion for music lovers.
+## 📄 License
+
+```
+MIT License
+
+Copyright (c) 2026 Danial Choopan
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files...
+```
+
+---
+
+<div align="center">
+  <b>Developed by <a href="https://github.com/danialchoopan">Danial Choopan</a></b><br>
+  Built with ❤️ for music lovers
+</div>

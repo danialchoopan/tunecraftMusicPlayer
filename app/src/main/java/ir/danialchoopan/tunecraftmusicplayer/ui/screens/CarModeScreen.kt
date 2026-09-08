@@ -7,11 +7,12 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -25,7 +26,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -36,17 +36,22 @@ import ir.danialchoopan.tunecraftmusicplayer.data.local.entity.SongEntity
 import ir.danialchoopan.tunecraftmusicplayer.service.AudioFxManager
 import ir.danialchoopan.tunecraftmusicplayer.service.PlayerState
 import ir.danialchoopan.tunecraftmusicplayer.ui.components.SwipeableTrackContainer
+import ir.danialchoopan.tunecraftmusicplayer.ui.components.formatTime
 import java.text.SimpleDateFormat
 import java.util.*
 
 /**
- * Automotive Car Mode Interface.
+ * CarModeScreen — Optimized driving interface with large touch targets.
  *
- * Developer & Ergonomic Notes:
- * 1. Ultra-Large Touch Targets: Play/Pause button expanded to 92dp, Next/Prev buttons to 64dp-72dp for safety while driving.
- * 2. Voice Search Command Handler: Integrates Android `RecognizerIntent.ACTION_RECOGNIZE_SPEECH` for hands-free song playback.
- * 3. Vehicle Head Unit Adaptability: Adapts seamlessly to 16:9 widescreen landscape automotive displays and standard portrait setups.
- * 4. High Contrast UI: Employs deep dark tones with vibrant high-contrast action colors to eliminate glares in vehicle cabins.
+ * Key design principles for automotive use:
+ * - Minimum touch target: 64dp (92dp for play/pause)
+ * - High contrast: dark background with bright accent colors to fight glare
+ * - Voice search: hands-free song lookup via RecognizerIntent
+ * - Quick actions: Bass Boost toggle, Favorites, Recently Played, Shuffle All
+ * - Live clock in header
+ *
+ * All colors use MaterialTheme.colorScheme values where possible,
+ * with overrides only for the high-contrast AMOLED toggle.
  */
 @Composable
 fun CarModeScreen(
@@ -66,7 +71,7 @@ fun CarModeScreen(
     val context = LocalContext.current
     var currentTimeStr by remember { mutableStateOf("") }
 
-    // Live Clock Update
+    // Live clock — updates every second via a coroutine
     LaunchedEffect(Unit) {
         val sdf = SimpleDateFormat("HH:mm", Locale.getDefault())
         while (true) {
@@ -75,7 +80,7 @@ fun CarModeScreen(
         }
     }
 
-    // Voice recognition launcher for hands-free drive search
+    // Voice search launcher — fires RecognizerIntent, matches result against library
     val voiceLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
@@ -88,17 +93,13 @@ fun CarModeScreen(
                 }
                 if (matched.isNotEmpty()) {
                     onPlaySongs(matched, 0)
-                    Toast.makeText(
-                        context,
+                    Toast.makeText(context,
                         if (isPersian) "در حال پخش: ${matched.first().title}" else "Playing: ${matched.first().title}",
-                        Toast.LENGTH_SHORT
-                    ).show()
+                        Toast.LENGTH_SHORT).show()
                 } else {
-                    Toast.makeText(
-                        context,
+                    Toast.makeText(context,
                         if (isPersian) "آهنگی با عنوان \"$spokenText\" پیدا نشد" else "No song found for \"$spokenText\"",
-                        Toast.LENGTH_SHORT
-                    ).show()
+                        Toast.LENGTH_SHORT).show()
                 }
             }
         }
@@ -109,30 +110,37 @@ fun CarModeScreen(
     val position = playerState.currentPositionMs.coerceIn(0L, duration)
     val isPlaying = playerState.isPlaying
 
+    // High-contrast mode toggle — switches between pure black AMOLED and theme surface
     var highContrastMode by remember { mutableStateOf(true) }
 
     val backgroundColor by animateColorAsState(
-        if (highContrastMode) Color(0xFF000000) else MaterialTheme.colorScheme.surface
+        if (highContrastMode) Color(0xFF000000) else MaterialTheme.colorScheme.background,
+        label = "bgColor"
     )
-    val cardColor by animateColorAsState(
-        if (highContrastMode) Color(0xFF121212) else MaterialTheme.colorScheme.surfaceVariant
+    val surfaceColor by animateColorAsState(
+        if (highContrastMode) Color(0xFF121212) else MaterialTheme.colorScheme.surface,
+        label = "surfaceColor"
     )
+    // Accent color used for play button and highlights
+    val accentColor = if (highContrastMode) Color(0xFF38BDF8) else MaterialTheme.colorScheme.primary
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(backgroundColor)
-            .padding(16.dp),
+            .systemBarsPadding()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Top Header Bar: Clock, Drive Mode Badge, Exit Button
+        // ── Top Bar: Car Mode badge + clock + actions ──────────────────────
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Car mode badge with live clock
             Surface(
-                color = Color(0xFF1E293B),
+                color = surfaceColor,
                 shape = RoundedCornerShape(20.dp)
             ) {
                 Row(
@@ -142,7 +150,7 @@ fun CarModeScreen(
                     Icon(
                         imageVector = Icons.Default.DirectionsCar,
                         contentDescription = null,
-                        tint = Color(0xFF38BDF8),
+                        tint = accentColor,
                         modifier = Modifier.size(24.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
@@ -150,91 +158,72 @@ fun CarModeScreen(
                         text = if (isPersian) "حالت رانندگی" else "CAR MODE",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        color = Color.White
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     Spacer(modifier = Modifier.width(12.dp))
                     Text(
                         text = currentTimeStr,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF38BDF8)
+                        color = accentColor
                     )
                 }
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                // Toggle contrast/theme
+                // Toggle high contrast mode
                 IconButton(
                     onClick = { highContrastMode = !highContrastMode },
                     modifier = Modifier
                         .size(48.dp)
-                        .background(Color(0xFF1E293B), CircleShape)
+                        .background(surfaceColor, CircleShape)
                 ) {
                     Icon(
                         imageVector = if (highContrastMode) Icons.Default.WbSunny else Icons.Default.NightsStay,
-                        contentDescription = "Theme",
-                        tint = Color.White
+                        contentDescription = "Toggle Contrast",
+                        tint = MaterialTheme.colorScheme.onSurface
                     )
                 }
 
-                // Voice Control Button
-                Button(
+                // Voice search button
+                FilledTonalButton(
                     onClick = {
                         try {
                             val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
                                 putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-                                putExtra(RecognizerIntent.EXTRA_PROMPT, if (isPersian) "نام آهنگ یا خواننده را بگو..." else "Say song or artist name...")
+                                putExtra(RecognizerIntent.EXTRA_PROMPT,
+                                    if (isPersian) "نام آهنگ یا خواننده را بگو..." else "Say song or artist name...")
                             }
                             voiceLauncher.launch(intent)
                         } catch (e: Exception) {
-                            Toast.makeText(context, "Voice search not supported on this device", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "Voice search not supported", Toast.LENGTH_SHORT).show()
                         }
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7)),
                     shape = RoundedCornerShape(20.dp),
                     contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Mic,
-                        contentDescription = "Voice Search",
-                        tint = Color.White,
-                        modifier = Modifier.size(24.dp)
-                    )
+                    Icon(Icons.Default.Mic, contentDescription = "Voice Search", modifier = Modifier.size(24.dp))
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = if (isPersian) "جستجوی صوتی" else "Voice",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 15.sp,
-                        color = Color.White
-                    )
+                    Text(if (isPersian) "جستجوی صوتی" else "Voice", fontWeight = FontWeight.Bold, fontSize = 15.sp)
                 }
 
-                // Exit Car Mode
+                // Exit car mode (red for danger/warning semantics)
                 Button(
                     onClick = onExitCarMode,
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFDC2626)),
                     shape = RoundedCornerShape(20.dp),
                     contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Close,
-                        contentDescription = "Exit",
-                        tint = Color.White,
-                        modifier = Modifier.size(24.dp)
-                    )
+                    Icon(Icons.Default.Close, contentDescription = "Exit", modifier = Modifier.size(24.dp))
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = if (isPersian) "خروج" else "EXIT",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 15.sp,
-                        color = Color.White
-                    )
+                    Text(if (isPersian) "خروج" else "EXIT", fontWeight = FontWeight.Bold, fontSize = 15.sp)
                 }
             }
         }
 
         Spacer(modifier = Modifier.height(12.dp))
 
+        // ── Center: Swipeable track card with album art + progress ─────────
         val nextSong = if (playerState.currentIndex in 0 until playerState.queue.size - 1) {
             playerState.queue.getOrNull(playerState.currentIndex + 1)
         } else playerState.queue.firstOrNull()
@@ -243,34 +232,29 @@ fun CarModeScreen(
             playerState.queue.getOrNull(playerState.currentIndex - 1)
         } else playerState.queue.lastOrNull()
 
-        // Center Media Display Card wrapped with Swipeable Track Gestures
         SwipeableTrackContainer(
             onNext = onNext,
             onPrevious = onPrevious,
             nextSong = nextSong,
             previousSong = previousSong,
             isPersian = isPersian,
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f)
+            modifier = Modifier.fillMaxWidth().weight(1f)
         ) {
             Card(
                 modifier = Modifier.fillMaxSize(),
-                colors = CardDefaults.cardColors(containerColor = cardColor),
+                colors = CardDefaults.cardColors(containerColor = surfaceColor),
                 shape = RoundedCornerShape(24.dp)
             ) {
                 Row(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(16.dp),
+                    modifier = Modifier.fillMaxSize().padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Album Art (Large)
+                    // Large album art thumbnail
                     Box(
                         modifier = Modifier
                             .size(180.dp)
                             .clip(RoundedCornerShape(20.dp))
-                            .background(Color(0xFF1F2937)),
+                            .background(accentColor.copy(alpha = 0.15f)),
                         contentAlignment = Alignment.Center
                     ) {
                         AsyncImage(
@@ -288,18 +272,16 @@ fun CarModeScreen(
 
                     Spacer(modifier = Modifier.width(20.dp))
 
-                    // Song Info + Visualizer
+                    // Song info + seek bar
                     Column(
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxHeight(),
+                        modifier = Modifier.weight(1f).fillMaxHeight(),
                         verticalArrangement = Arrangement.Center
                     ) {
                         Text(
                             text = currentSong?.title ?: (if (isPersian) "هیچ آهنگی در حال پخش نیست" else "No track selected"),
                             style = MaterialTheme.typography.headlineMedium,
                             fontWeight = FontWeight.ExtraBold,
-                            color = Color.White,
+                            color = MaterialTheme.colorScheme.onSurface,
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -307,40 +289,36 @@ fun CarModeScreen(
                         Text(
                             text = currentSong?.artist ?: (if (isPersian) "هنرمند ناشناس" else "Unknown Artist"),
                             style = MaterialTheme.typography.titleLarge,
-                            color = Color(0xFF38BDF8),
+                            color = accentColor,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
 
                         Spacer(modifier = Modifier.height(12.dp))
 
-                        // Progress slider + times
+                        // Seek bar
                         Slider(
                             value = position.toFloat(),
                             onValueChange = { onSeekTo(it.toLong()) },
                             valueRange = 0f..duration.toFloat(),
                             colors = SliderDefaults.colors(
-                                thumbColor = Color(0xFF38BDF8),
-                                activeTrackColor = Color(0xFF0088FF),
-                                inactiveTrackColor = Color(0xFF334155)
+                                thumbColor = accentColor,
+                                activeTrackColor = accentColor,
+                                inactiveTrackColor = surfaceColor.copy(alpha = 0.5f)
                             )
                         )
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Text(
-                                text = formatTime(position),
+                            Text(text = formatTime(position),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
-                                color = Color.White
-                            )
-                            Text(
-                                text = formatTime(duration),
+                                color = MaterialTheme.colorScheme.onSurface)
+                            Text(text = formatTime(duration),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
-                                color = Color(0xFF94A3B8)
-                            )
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                 }
@@ -349,53 +327,43 @@ fun CarModeScreen(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Large Touch Controls Row for driving
+        // ── Large touch controls ────────────────────────────────────────────
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 4.dp),
+            modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Seek Back 10s
+            // Rewind 10s
             Surface(
                 onClick = { onSeekTo((position - 10000L).coerceAtLeast(0L)) },
                 shape = CircleShape,
-                color = Color(0xFF1E293B),
+                color = surfaceColor,
                 modifier = Modifier.size(64.dp)
             ) {
                 Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = Icons.Default.Replay10,
-                        contentDescription = "-10s",
-                        tint = Color.White,
-                        modifier = Modifier.size(36.dp)
-                    )
+                    Icon(Icons.Default.Replay10, contentDescription = "-10s",
+                        tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(36.dp))
                 }
             }
 
-            // Previous Song
+            // Previous
             Surface(
                 onClick = onPrevious,
                 shape = CircleShape,
-                color = Color(0xFF1E293B),
+                color = surfaceColor,
                 modifier = Modifier.size(72.dp)
             ) {
                 Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = Icons.Default.SkipPrevious,
-                        contentDescription = "Previous",
-                        tint = Color.White,
-                        modifier = Modifier.size(44.dp)
-                    )
+                    Icon(Icons.Default.SkipPrevious, contentDescription = "Previous",
+                        tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(44.dp))
                 }
             }
 
-            // Play / Pause GIANT Button (92dp)
+            // Play/Pause — 92dp, accent colored
             Surface(
                 onClick = onPlayPause,
                 shape = CircleShape,
-                color = Color(0xFF0088FF),
+                color = accentColor,
                 modifier = Modifier.size(92.dp),
                 tonalElevation = 12.dp
             ) {
@@ -409,58 +377,47 @@ fun CarModeScreen(
                 }
             }
 
-            // Next Song
+            // Next
             Surface(
                 onClick = onNext,
                 shape = CircleShape,
-                color = Color(0xFF1E293B),
+                color = surfaceColor,
                 modifier = Modifier.size(72.dp)
             ) {
                 Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = Icons.Default.SkipNext,
-                        contentDescription = "Next",
-                        tint = Color.White,
-                        modifier = Modifier.size(44.dp)
-                    )
+                    Icon(Icons.Default.SkipNext, contentDescription = "Next",
+                        tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(44.dp))
                 }
             }
 
-            // Seek Forward 10s
+            // Forward 10s
             Surface(
                 onClick = { onSeekTo((position + 10000L).coerceAtMost(duration)) },
                 shape = CircleShape,
-                color = Color(0xFF1E293B),
+                color = surfaceColor,
                 modifier = Modifier.size(64.dp)
             ) {
                 Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = Icons.Default.Forward10,
-                        contentDescription = "+10s",
-                        tint = Color.White,
-                        modifier = Modifier.size(36.dp)
-                    )
+                    Icon(Icons.Default.Forward10, contentDescription = "+10s",
+                        tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(36.dp))
                 }
             }
         }
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Quick Drive Playlists & Bass Boost Row
+        // ── Quick drive shortcuts ───────────────────────────────────────────
         Text(
-            text = if (isPersian) "لیست‌های پخش سریع رانندگی:" else "Quick Drive Playlists:",
+            text = if (isPersian) "دسترسی سریع رانندگی:" else "Quick Drive Access:",
             style = MaterialTheme.typography.titleSmall,
-            color = Color(0xFF94A3B8),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.fillMaxWidth()
         )
         Spacer(modifier = Modifier.height(6.dp))
 
-        LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            modifier = Modifier.fillMaxWidth()
-        ) {
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+            // Bass Boost toggle with visual feedback
             item {
-                // Quick Bass Boost Toggle
                 val fxState by audioFxManager?.state?.collectAsState() ?: remember { mutableStateOf(null) }
                 val bassActive = (fxState?.bassBoost ?: 0) > 0
                 FilterChip(
@@ -471,83 +428,72 @@ fun CarModeScreen(
                         audioFxManager?.toggleEqualizer(true)
                     },
                     label = {
-                        Text(
-                            text = if (isPersian) "⚡ بیس قوی رانندگی" else "⚡ Drive Bass Boost",
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Bold
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = if (bassActive) Icons.Default.Equalizer else Icons.Default.Equalizer,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp),
+                                tint = if (bassActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                if (isPersian) "بیس قوی" else "Bass Boost",
+                                fontWeight = FontWeight.Bold, fontSize = 15.sp
+                            )
+                        }
                     },
                     modifier = Modifier.height(48.dp)
                 )
             }
 
+            // Favorites playlist
             item {
                 FilterChip(
                     selected = false,
                     onClick = {
-                        if (favoriteSongs.isNotEmpty()) {
-                            onPlaySongs(favoriteSongs, 0)
-                        } else {
-                            Toast.makeText(context, if (isPersian) "علاقه‌مندی خالی است" else "Favorites is empty", Toast.LENGTH_SHORT).show()
-                        }
+                        if (favoriteSongs.isNotEmpty()) onPlaySongs(favoriteSongs, 0)
+                        else Toast.makeText(context,
+                            if (isPersian) "علاقه‌مندی خالی است" else "Favorites is empty",
+                            Toast.LENGTH_SHORT).show()
                     },
                     label = {
-                        Text(
-                            text = if (isPersian) "❤️ علاقمندی‌ها (${favoriteSongs.size})" else "❤️ Favorites (${favoriteSongs.size})",
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Bold
-                        )
+                        Text("❤️ ${if (isPersian) "علاقه‌مندی‌ها" else "Favorites"} (${favoriteSongs.size})",
+                            fontWeight = FontWeight.Bold, fontSize = 15.sp)
                     },
                     modifier = Modifier.height(48.dp)
                 )
             }
 
+            // Recently Played
             item {
                 FilterChip(
                     selected = false,
                     onClick = {
-                        if (recentlyPlayed.isNotEmpty()) {
-                            onPlaySongs(recentlyPlayed, 0)
-                        } else {
-                            Toast.makeText(context, if (isPersian) "لیست اخیر خالی است" else "Recently played is empty", Toast.LENGTH_SHORT).show()
-                        }
+                        if (recentlyPlayed.isNotEmpty()) onPlaySongs(recentlyPlayed, 0)
+                        else Toast.makeText(context,
+                            if (isPersian) "لیست اخیر خالی است" else "Recently played is empty",
+                            Toast.LENGTH_SHORT).show()
                     },
                     label = {
-                        Text(
-                            text = if (isPersian) "🕒 شنیده‌های اخیر" else "🕒 Recently Played",
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Bold
-                        )
+                        Text("🕒 ${if (isPersian) "شنیده‌های اخیر" else "Recent"}",
+                            fontWeight = FontWeight.Bold, fontSize = 15.sp)
                     },
                     modifier = Modifier.height(48.dp)
                 )
             }
 
+            // Shuffle all
             item {
                 FilterChip(
                     selected = false,
-                    onClick = {
-                        if (allSongs.isNotEmpty()) {
-                            onPlaySongs(allSongs.shuffled(), 0)
-                        }
-                    },
+                    onClick = { if (allSongs.isNotEmpty()) onPlaySongs(allSongs.shuffled(), 0) },
                     label = {
-                        Text(
-                            text = if (isPersian) "🔀 پخش تصادفی همه" else "🔀 Shuffle All Tracks",
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Bold
-                        )
+                        Text("🔀 ${if (isPersian) "پخش تصادفی" else "Shuffle All"}",
+                            fontWeight = FontWeight.Bold, fontSize = 15.sp)
                     },
                     modifier = Modifier.height(48.dp)
                 )
             }
         }
     }
-}
-
-private fun formatTime(ms: Long): String {
-    val totalSec = ms / 1000
-    val min = totalSec / 60
-    val sec = totalSec % 60
-    return String.format(Locale.US, "%02d:%02d", min, sec)
 }

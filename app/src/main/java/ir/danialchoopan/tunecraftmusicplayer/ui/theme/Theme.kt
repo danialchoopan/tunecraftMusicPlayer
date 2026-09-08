@@ -2,231 +2,304 @@ package ir.danialchoopan.tunecraftmusicplayer.ui.theme
 
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.material3.*
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
+/*
+ * TuneCraft - Theme Engine
+ *
+ * Maps the 14 color schemes from Color.kt into Material 3 ColorSchemes.
+ * Each scheme is registered with both dark and light variants where appropriate.
+ *
+ * A note on M3 color tokens:
+ * - primary / onPrimary → main accent & text-on-accent
+ * - primaryContainer / onPrimaryContainer → tinted surface for selected states
+ * - secondary / onSecondary → secondary accent for less prominent UI
+ * - secondaryContainer / onSecondaryContainer → tinted surface for secondary
+ * - background / onBackground → root background & text on it
+ * - surface / onSurface → card/sheet backgrounds & text on them
+ * - surfaceVariant / onSurfaceVariant → subdued surface (e.g. search bars)
+ * - surfaceContainer → M3 "elevated" surface tier (used for bottom bars)
+ * - outline → dividers and borders
+ */
+
+// ─── Dark Schemes ─────────────────────────────────────────────────────────
 private val DarkVioletColorScheme = darkColorScheme(
     primary = DarkVioletPrimary,
-    onPrimary = androidx.compose.ui.graphics.Color.White,
+    onPrimary = Color.White,
     primaryContainer = DarkVioletSurfaceVariant,
     onPrimaryContainer = DarkVioletOnBackground,
     secondary = DarkVioletSecondary,
-    onSecondary = androidx.compose.ui.graphics.Color.Black,
-    secondaryContainer = DarkVioletSurface,
-    onSecondaryContainer = DarkVioletOnBackground,
+    onSecondary = Color.Black,
+    secondaryContainer = DarkVioletSurfaceContainer,
+    onSecondaryContainer = DarkVioletSecondary,
+    tertiary = DarkVioletTertiary,
     background = DarkVioletBackground,
-    surface = DarkVioletSurface,
-    surfaceVariant = DarkVioletSurfaceVariant,
     onBackground = DarkVioletOnBackground,
-    onSurface = DarkVioletOnBackground,
-    onSurfaceVariant = DarkVioletOnBackground
+    surface = DarkVioletSurface,
+    onSurface = DarkVioletOnSurface,
+    surfaceVariant = DarkVioletSurfaceVariant,
+    onSurfaceVariant = DarkVioletOnSurface.copy(alpha = 0.75f),
+    surfaceContainer = DarkVioletSurfaceContainer,
+    outline = DarkVioletOnSurface.copy(alpha = 0.12f)
 )
 
 private val SunsetColorScheme = darkColorScheme(
     primary = SunsetPrimary,
-    onPrimary = androidx.compose.ui.graphics.Color.Black,
+    onPrimary = Color.Black,
     primaryContainer = SunsetSurfaceVariant,
     onPrimaryContainer = SunsetOnBackground,
     secondary = SunsetSecondary,
-    onSecondary = androidx.compose.ui.graphics.Color.White,
-    secondaryContainer = SunsetSurface,
-    onSecondaryContainer = SunsetOnBackground,
+    onSecondary = Color.White,
+    secondaryContainer = SunsetSurfaceContainer,
+    onSecondaryContainer = SunsetSecondary,
+    tertiary = SunsetTertiary,
     background = SunsetBackground,
-    surface = SunsetSurface,
-    surfaceVariant = SunsetSurfaceVariant,
     onBackground = SunsetOnBackground,
-    onSurface = SunsetOnBackground,
-    onSurfaceVariant = SunsetOnBackground
+    surface = SunsetSurface,
+    onSurface = SunsetOnSurface,
+    surfaceVariant = SunsetSurfaceVariant,
+    onSurfaceVariant = SunsetOnSurface.copy(alpha = 0.75f),
+    surfaceContainer = SunsetSurfaceContainer,
+    outline = SunsetOnSurface.copy(alpha = 0.12f)
 )
 
 private val ForestColorScheme = darkColorScheme(
     primary = ForestPrimary,
-    onPrimary = androidx.compose.ui.graphics.Color.Black,
+    onPrimary = Color.Black,
     primaryContainer = ForestSurfaceVariant,
     onPrimaryContainer = ForestOnBackground,
     secondary = ForestSecondary,
-    onSecondary = androidx.compose.ui.graphics.Color.Black,
-    secondaryContainer = ForestSurface,
-    onSecondaryContainer = ForestOnBackground,
+    onSecondary = Color.Black,
+    secondaryContainer = ForestSurfaceContainer,
+    onSecondaryContainer = ForestSecondary,
+    tertiary = ForestTertiary,
     background = ForestBackground,
-    surface = ForestSurface,
-    surfaceVariant = ForestSurfaceVariant,
     onBackground = ForestOnBackground,
-    onSurface = ForestOnBackground,
-    onSurfaceVariant = ForestOnBackground
+    surface = ForestSurface,
+    onSurface = ForestOnSurface,
+    surfaceVariant = ForestSurfaceVariant,
+    onSurfaceVariant = ForestOnSurface.copy(alpha = 0.75f),
+    surfaceContainer = ForestSurfaceContainer,
+    outline = ForestOnSurface.copy(alpha = 0.12f)
 )
 
 private val OceanColorScheme = darkColorScheme(
     primary = OceanPrimary,
-    onPrimary = androidx.compose.ui.graphics.Color.White,
+    onPrimary = Color.White,
     primaryContainer = OceanSurfaceVariant,
     onPrimaryContainer = OceanOnBackground,
     secondary = OceanSecondary,
-    onSecondary = androidx.compose.ui.graphics.Color.Black,
-    secondaryContainer = OceanSurface,
-    onSecondaryContainer = OceanOnBackground,
+    onSecondary = Color.Black,
+    secondaryContainer = OceanSurfaceContainer,
+    onSecondaryContainer = OceanSecondary,
+    tertiary = OceanTertiary,
     background = OceanBackground,
-    surface = OceanSurface,
-    surfaceVariant = OceanSurfaceVariant,
     onBackground = OceanOnBackground,
-    onSurface = OceanOnBackground,
-    onSurfaceVariant = OceanOnBackground
+    surface = OceanSurface,
+    onSurface = OceanOnSurface,
+    surfaceVariant = OceanSurfaceVariant,
+    onSurfaceVariant = OceanOnSurface.copy(alpha = 0.75f),
+    surfaceContainer = OceanSurfaceContainer,
+    outline = OceanOnSurface.copy(alpha = 0.12f)
 )
 
 private val RoseColorScheme = darkColorScheme(
     primary = RosePrimary,
-    onPrimary = androidx.compose.ui.graphics.Color.White,
+    onPrimary = Color.White,
     primaryContainer = RoseSurfaceVariant,
     onPrimaryContainer = RoseOnBackground,
     secondary = RoseSecondary,
-    onSecondary = androidx.compose.ui.graphics.Color.White,
-    secondaryContainer = RoseSurface,
-    onSecondaryContainer = RoseOnBackground,
+    onSecondary = Color.White,
+    secondaryContainer = RoseSurfaceContainer,
+    onSecondaryContainer = RoseSecondary,
+    tertiary = RoseTertiary,
     background = RoseBackground,
-    surface = RoseSurface,
-    surfaceVariant = RoseSurfaceVariant,
     onBackground = RoseOnBackground,
-    onSurface = RoseOnBackground,
-    onSurfaceVariant = RoseOnBackground
+    surface = RoseSurface,
+    onSurface = RoseOnSurface,
+    surfaceVariant = RoseSurfaceVariant,
+    onSurfaceVariant = RoseOnSurface.copy(alpha = 0.75f),
+    surfaceContainer = RoseSurfaceContainer,
+    outline = RoseOnSurface.copy(alpha = 0.12f)
 )
 
 private val AmoledColorScheme = darkColorScheme(
     primary = AmoledPrimary,
-    onPrimary = androidx.compose.ui.graphics.Color.Black,
+    onPrimary = Color.Black,
     primaryContainer = AmoledSurfaceVariant,
     onPrimaryContainer = AmoledOnBackground,
     secondary = AmoledSecondary,
-    onSecondary = androidx.compose.ui.graphics.Color.Black,
-    secondaryContainer = AmoledSurface,
-    onSecondaryContainer = AmoledOnBackground,
+    onSecondary = Color.Black,
+    secondaryContainer = AmoledSurfaceContainer,
+    onSecondaryContainer = AmoledSecondary,
+    tertiary = AmoledTertiary,
     background = AmoledBackground,
-    surface = AmoledSurface,
-    surfaceVariant = AmoledSurfaceVariant,
     onBackground = AmoledOnBackground,
-    onSurface = AmoledOnBackground,
-    onSurfaceVariant = AmoledOnBackground
-)
-
-private val WarmPeachColorScheme = lightColorScheme(
-    primary = WarmPeachPrimary,
-    onPrimary = androidx.compose.ui.graphics.Color.White,
-    primaryContainer = WarmPeachSurfaceVariant,
-    onPrimaryContainer = WarmPeachOnBackground,
-    secondary = WarmPeachSecondary,
-    onSecondary = androidx.compose.ui.graphics.Color.Black,
-    secondaryContainer = WarmPeachSurface,
-    onSecondaryContainer = WarmPeachOnBackground,
-    background = WarmPeachBackground,
-    surface = WarmPeachSurface,
-    surfaceVariant = WarmPeachSurfaceVariant,
-    onBackground = WarmPeachOnBackground,
-    onSurface = WarmPeachOnBackground,
-    onSurfaceVariant = WarmPeachOnBackground
-)
-
-private val NordicColorScheme = lightColorScheme(
-    primary = NordicPrimary,
-    onPrimary = androidx.compose.ui.graphics.Color.White,
-    primaryContainer = NordicSurfaceVariant,
-    onPrimaryContainer = NordicOnBackground,
-    secondary = NordicSecondary,
-    onSecondary = androidx.compose.ui.graphics.Color.White,
-    secondaryContainer = NordicSurface,
-    onSecondaryContainer = NordicOnBackground,
-    background = NordicBackground,
-    surface = NordicSurface,
-    surfaceVariant = NordicSurfaceVariant,
-    onBackground = NordicOnBackground,
-    onSurface = NordicOnBackground,
-    onSurfaceVariant = NordicOnBackground
+    surface = AmoledSurface,
+    onSurface = AmoledOnSurface,
+    surfaceVariant = AmoledSurfaceVariant,
+    onSurfaceVariant = AmoledOnSurface.copy(alpha = 0.7f),
+    surfaceContainer = AmoledSurfaceContainer,
+    outline = AmoledOnSurface.copy(alpha = 0.1f)
 )
 
 private val CyberpunkColorScheme = darkColorScheme(
     primary = CyberpunkPrimary,
-    onPrimary = androidx.compose.ui.graphics.Color.White,
+    onPrimary = Color.White,
     primaryContainer = CyberpunkSurfaceVariant,
     onPrimaryContainer = CyberpunkOnBackground,
     secondary = CyberpunkSecondary,
-    onSecondary = androidx.compose.ui.graphics.Color.Black,
-    secondaryContainer = CyberpunkSurface,
-    onSecondaryContainer = CyberpunkOnBackground,
+    onSecondary = Color.Black,
+    secondaryContainer = CyberpunkSurfaceContainer,
+    onSecondaryContainer = CyberpunkSecondary,
+    tertiary = CyberpunkTertiary,
     background = CyberpunkBackground,
-    surface = CyberpunkSurface,
-    surfaceVariant = CyberpunkSurfaceVariant,
     onBackground = CyberpunkOnBackground,
-    onSurface = CyberpunkOnBackground,
-    onSurfaceVariant = CyberpunkOnBackground
+    surface = CyberpunkSurface,
+    onSurface = CyberpunkOnSurface,
+    surfaceVariant = CyberpunkSurfaceVariant,
+    onSurfaceVariant = CyberpunkOnSurface.copy(alpha = 0.75f),
+    surfaceContainer = CyberpunkSurfaceContainer,
+    outline = CyberpunkOnSurface.copy(alpha = 0.12f)
 )
 
 private val GoldColorScheme = darkColorScheme(
     primary = GoldPrimary,
-    onPrimary = androidx.compose.ui.graphics.Color.Black,
+    onPrimary = Color.Black,
     primaryContainer = GoldSurfaceVariant,
     onPrimaryContainer = GoldOnBackground,
     secondary = GoldSecondary,
-    onSecondary = androidx.compose.ui.graphics.Color.Black,
-    secondaryContainer = GoldSurface,
-    onSecondaryContainer = GoldOnBackground,
+    onSecondary = Color.Black,
+    secondaryContainer = GoldSurfaceContainer,
+    onSecondaryContainer = GoldSecondary,
+    tertiary = GoldTertiary,
     background = GoldBackground,
-    surface = GoldSurface,
-    surfaceVariant = GoldSurfaceVariant,
     onBackground = GoldOnBackground,
-    onSurface = GoldOnBackground,
-    onSurfaceVariant = GoldOnBackground
+    surface = GoldSurface,
+    onSurface = GoldOnSurface,
+    surfaceVariant = GoldSurfaceVariant,
+    onSurfaceVariant = GoldOnSurface.copy(alpha = 0.75f),
+    surfaceContainer = GoldSurfaceContainer,
+    outline = GoldOnSurface.copy(alpha = 0.12f)
 )
 
 private val LavaColorScheme = darkColorScheme(
     primary = LavaPrimary,
-    onPrimary = androidx.compose.ui.graphics.Color.White,
+    onPrimary = Color.White,
     primaryContainer = LavaSurfaceVariant,
     onPrimaryContainer = LavaOnBackground,
     secondary = LavaSecondary,
-    onSecondary = androidx.compose.ui.graphics.Color.Black,
-    secondaryContainer = LavaSurface,
-    onSecondaryContainer = LavaOnBackground,
+    onSecondary = Color.Black,
+    secondaryContainer = LavaSurfaceContainer,
+    onSecondaryContainer = LavaSecondary,
+    tertiary = LavaTertiary,
     background = LavaBackground,
-    surface = LavaSurface,
-    surfaceVariant = LavaSurfaceVariant,
     onBackground = LavaOnBackground,
-    onSurface = LavaOnBackground,
-    onSurfaceVariant = LavaOnBackground
+    surface = LavaSurface,
+    onSurface = LavaOnSurface,
+    surfaceVariant = LavaSurfaceVariant,
+    onSurfaceVariant = LavaOnSurface.copy(alpha = 0.75f),
+    surfaceContainer = LavaSurfaceContainer,
+    outline = LavaOnSurface.copy(alpha = 0.12f)
+)
+
+// ─── Light Schemes ────────────────────────────────────────────────────────
+private val WarmPeachColorScheme = lightColorScheme(
+    primary = WarmPeachPrimary,
+    onPrimary = Color.White,
+    primaryContainer = WarmPeachSurfaceVariant,
+    onPrimaryContainer = WarmPeachOnBackground,
+    secondary = WarmPeachSecondary,
+    onSecondary = Color.White,
+    secondaryContainer = WarmPeachSurfaceContainer,
+    onSecondaryContainer = WarmPeachSecondary,
+    tertiary = WarmPeachTertiary,
+    background = WarmPeachBackground,
+    onBackground = WarmPeachOnBackground,
+    surface = WarmPeachSurface,
+    onSurface = WarmPeachOnSurface,
+    surfaceVariant = WarmPeachSurfaceVariant,
+    onSurfaceVariant = WarmPeachOnSurface.copy(alpha = 0.7f),
+    surfaceContainer = WarmPeachSurfaceContainer,
+    outline = WarmPeachOnSurface.copy(alpha = 0.15f)
+)
+
+private val NordicColorScheme = lightColorScheme(
+    primary = NordicPrimary,
+    onPrimary = Color.White,
+    primaryContainer = NordicSurfaceVariant,
+    onPrimaryContainer = NordicOnBackground,
+    secondary = NordicSecondary,
+    onSecondary = Color.White,
+    secondaryContainer = NordicSurfaceContainer,
+    onSecondaryContainer = NordicSecondary,
+    tertiary = NordicTertiary,
+    background = NordicBackground,
+    onBackground = NordicOnBackground,
+    surface = NordicSurface,
+    onSurface = NordicOnSurface,
+    surfaceVariant = NordicSurfaceVariant,
+    onSurfaceVariant = NordicOnSurface.copy(alpha = 0.7f),
+    surfaceContainer = NordicSurfaceContainer,
+    outline = NordicOnSurface.copy(alpha = 0.15f)
 )
 
 private val SakuraColorScheme = lightColorScheme(
     primary = SakuraPrimary,
-    onPrimary = androidx.compose.ui.graphics.Color.White,
+    onPrimary = Color.White,
     primaryContainer = SakuraSurfaceVariant,
     onPrimaryContainer = SakuraOnBackground,
     secondary = SakuraSecondary,
-    onSecondary = androidx.compose.ui.graphics.Color.White,
-    secondaryContainer = SakuraSurface,
-    onSecondaryContainer = SakuraOnBackground,
+    onSecondary = Color.White,
+    secondaryContainer = SakuraSurfaceContainer,
+    onSecondaryContainer = SakuraSecondary,
+    tertiary = SakuraTertiary,
     background = SakuraBackground,
-    surface = SakuraSurface,
-    surfaceVariant = SakuraSurfaceVariant,
     onBackground = SakuraOnBackground,
-    onSurface = SakuraOnBackground,
-    onSurfaceVariant = SakuraOnBackground
+    surface = SakuraSurface,
+    onSurface = SakuraOnSurface,
+    surfaceVariant = SakuraSurfaceVariant,
+    onSurfaceVariant = SakuraOnSurface.copy(alpha = 0.7f),
+    surfaceContainer = SakuraSurfaceContainer,
+    outline = SakuraOnSurface.copy(alpha = 0.15f)
 )
 
 private val MintColorScheme = lightColorScheme(
     primary = MintPrimary,
-    onPrimary = androidx.compose.ui.graphics.Color.White,
+    onPrimary = Color.White,
     primaryContainer = MintSurfaceVariant,
     onPrimaryContainer = MintOnBackground,
     secondary = MintSecondary,
-    onSecondary = androidx.compose.ui.graphics.Color.White,
-    secondaryContainer = MintSurface,
-    onSecondaryContainer = MintOnBackground,
+    onSecondary = Color.White,
+    secondaryContainer = MintSurfaceContainer,
+    onSecondaryContainer = MintSecondary,
+    tertiary = MintTertiary,
     background = MintBackground,
-    surface = MintSurface,
-    surfaceVariant = MintSurfaceVariant,
     onBackground = MintOnBackground,
-    onSurface = MintOnBackground,
-    onSurfaceVariant = MintOnBackground
+    surface = MintSurface,
+    onSurface = MintOnSurface,
+    surfaceVariant = MintSurfaceVariant,
+    onSurfaceVariant = MintOnSurface.copy(alpha = 0.7f),
+    surfaceContainer = MintSurfaceContainer,
+    outline = MintOnSurface.copy(alpha = 0.15f)
 )
 
+/*
+ * TuneCraftTheme - Root composable wrapper.
+ *
+ * Selects the correct color scheme by themeMode string and wraps
+ * content with MaterialTheme (also applies custom Typography).
+ *
+ * @param themeMode One of the supported theme keys:
+ *   "FOREST", "SUNSET", "OCEAN", "ROSE", "AMOLED",
+ *   "WARM_PEACH", "NORDIC", "DARK_VIOLET", "CYBERPUNK",
+ *   "GOLD", "LAVA", "SAKURA", "MINT", "SYSTEM"
+ */
 @Composable
 fun TuneCraftTheme(
     themeMode: String = "FOREST",
@@ -250,11 +323,16 @@ fun TuneCraftTheme(
         "SAKURA", "LAVENDER" -> SakuraColorScheme
         "MINT", "SAGE" -> MintColorScheme
         "SYSTEM" -> if (isSystemDark) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) dynamicDarkColorScheme(context) else ForestColorScheme
+            // Material You — dynamic colors from wallpaper (Android 12+ only)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                androidx.compose.material3.dynamicDarkColorScheme(context)
+            } else ForestColorScheme
         } else {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) dynamicLightColorScheme(context) else WarmPeachColorScheme
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                androidx.compose.material3.dynamicLightColorScheme(context)
+            } else WarmPeachColorScheme
         }
-        else -> ForestColorScheme
+        else -> DarkVioletColorScheme
     }
 
     MaterialTheme(
@@ -263,4 +341,3 @@ fun TuneCraftTheme(
         content = content
     )
 }
-

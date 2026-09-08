@@ -217,7 +217,7 @@ class FullPlayerReceiver : GlanceAppWidgetReceiver() {
 }
 
 class VisualizerWidgetReceiver : GlanceAppWidgetReceiver() {
-    override val glanceAppWidget: GlanceAppWidget = CarModeWidget()
+    override val glanceAppWidget: GlanceAppWidget = MinimalPlayerWidget()
 }
 
 class QueueWidgetReceiver : GlanceAppWidgetReceiver() {

@@ -557,7 +557,7 @@ fun EqualizerView(
                         }
                         Text(
                             text = when {
-                                state.balance < -0.05f -> "L ${((abs(state.balance)) * 100).toInt()}%"
+                                state.balance < -0.05f -> "L ${((kotlin.math.abs(state.balance)) * 100).toInt()}%"
                                 state.balance > 0.05f -> "R ${((state.balance) * 100).toInt()}%"
                                 else -> if (isPersian) "مرکز (50/50)" else "Center"
                             },

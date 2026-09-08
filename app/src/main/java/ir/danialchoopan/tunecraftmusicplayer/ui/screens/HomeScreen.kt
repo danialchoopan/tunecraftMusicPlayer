@@ -38,6 +38,22 @@ import ir.danialchoopan.tunecraftmusicplayer.ui.components.formatTime
 import androidx.compose.ui.text.style.TextAlign
 import coil.request.ImageRequest
 
+/*
+ * HomeScreen — Main landing tab with quick access cards, recently played
+ * carousel, and the full song library list.
+ *
+ * Layout hierarchy:
+ *   1. Permission/empty/battery warning cards (conditional)
+ *   2. Quick shortcut row (Favorites, All Songs) with shuffle buttons
+ *   3. "Recently Played" horizontal carousel
+ *   4. "Featured Local Songs" section with filter chips (All / Recently Added)
+ *   5. Song list (LazyColumn items)
+ *   6. FAB for shuffle-all
+ *
+ * All LazyList items use key = { it.id } for stable identity and smooth
+ * scrolling even with 10k+ songs.
+ */
+
 /**
  * High-Performance Home Screen Composable.
  *
@@ -595,7 +611,7 @@ fun SongListItem(
                 }
             }
             Text(
-                text = "${song.duration / 60000}:${String.format("%02d", (song.duration % 60000) / 1000)}",
+                text = formatTime(song.duration),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

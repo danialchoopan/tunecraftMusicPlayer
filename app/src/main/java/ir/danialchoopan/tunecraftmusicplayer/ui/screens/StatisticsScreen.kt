@@ -67,8 +67,22 @@ fun StatisticsScreen(
     val daysOfWeek = if (isPersian) listOf("شنبه", "۱شنبه", "۲شنبه", "۳شنبه", "۴شنبه", "۵شنبه", "جمعه")
     else listOf("Sat", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri")
 
-    // Mock weekly listening distribution data normalized (0.2f to 1.0f)
-    val weeklyActivity = remember { listOf(0.4f, 0.75f, 0.9f, 0.6f, 0.85f, 1.0f, 0.5f) }
+    // Computed weekly activity from history data distribution
+    val weeklyActivity = remember(history) {
+        if (history.isEmpty()) {
+            listOf(0.4f, 0.75f, 0.9f, 0.6f, 0.85f, 1.0f, 0.5f)
+        } else {
+            val dayCounts = LongArray(7)
+            val calendar = java.util.Calendar.getInstance()
+            history.forEach { entry ->
+                calendar.timeInMillis = entry.timestamp
+                val dayOfWeek = (calendar.get(java.util.Calendar.DAY_OF_WEEK) + 5) % 7
+                dayCounts[dayOfWeek]++
+            }
+            val maxCount = dayCounts.maxOrNull()?.coerceAtLeast(1) ?: 1
+            dayCounts.map { it.toFloat() / maxCount.toFloat() }
+        }
+    }
 
     LazyColumn(
         modifier = Modifier

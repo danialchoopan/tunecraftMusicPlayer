@@ -1,5 +1,17 @@
 package ir.danialchoopan.tunecraftmusicplayer.ui.navigation
 
+/*
+ * Navigation route definitions.
+ *
+ * Each Screen object carries:
+ * - route: the NavHost route string
+ * - titleEn / titleFa: localized labels for drawer items and bottom nav
+ *
+ * Main tabs (Home, Library, Playlists) use a HorizontalPager inside the
+ * Home route. All other screens are standalone composable destinations
+ * in the NavHost.
+ */
+
 sealed class Screen(val route: String, val titleEn: String, val titleFa: String) {
     object Home : Screen("home", "Home", "خانه")
     object Library : Screen("library", "Library", "کتابخانه")

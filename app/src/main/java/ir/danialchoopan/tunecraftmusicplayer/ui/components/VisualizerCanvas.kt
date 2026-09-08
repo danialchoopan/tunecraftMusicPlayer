@@ -17,6 +17,24 @@ import ir.danialchoopan.tunecraftmusicplayer.service.AudioFxManager
 import kotlin.math.cos
 import kotlin.math.sin
 
+/*
+ * VisualizerCanvas — Animated audio visualizer with 4 render modes.
+ *
+ * When the AudioFxManager provides live FFT data (via fftData StateFlow),
+ * the canvas renders real frequency magnitudes. Otherwise it falls back
+ * to a procedural sine/cosine animation as a screen-saver-like effect.
+ *
+ * Modes:
+ * - WAVEFORM: continuous line oscillating around center Y
+ * - BARS: vertical rounded bars growing from bottom (default)
+ * - SPECTRUM: centered vertical bars
+ * - CIRCULAR: radial "rays" rotating around a center point
+ *
+ * Performance note: The InfiniteTransition-based fallback animation
+ * runs continuously even when paused. For battery-sensitive environments,
+ * consider pausing the animation when isPlaying is false.
+ */
+
 enum class VisualizerMode {
     WAVEFORM, SPECTRUM, CIRCULAR, BARS
 }

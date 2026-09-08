@@ -38,6 +38,27 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import java.io.File
 
+/*
+ * TuneCraftMediaService — Android Media3 MediaLibraryService.
+ *
+ * This is the heart of the app: it owns the ExoPlayer instance, manages the
+ * playback queue, handles shuffle/repeat/sleep-timer, and communicates with
+ * Android's system media panel (lock screen, quick settings, Wear OS, Android Auto).
+ *
+ * Key architecture notes:
+ * 1. PlayerState is a single immutable data class exposed as a StateFlow.
+ *    All UI reads it via collectAsStateWithLifecycle for consistency.
+ * 2. Palette color extraction runs on IO and updates the ExoPlayer media item
+ *    for rich notification artwork.
+ * 3. The sleep timer is a coroutine-based countdown (not Handler) to avoid
+ *    the drift inherent in postDelayed chaining.
+ * 4. Smart shuffle types (SMART_ARTIST, FAVORITES_FIRST, FRESH_TRACKS) are
+ *    placeholders — they all map to ExoPlayer's built-in shuffle. The queue
+ *    reordering logic for "real" smart shuffle is unimplemented.
+ * 5. The companion object holds _playerState as a singleton so the Activity
+ *    can observe it without coupling to the service lifecycle.
+ */
+
 enum class ShuffleType(val labelEn: String, val labelFa: String) {
     OFF("Shuffle Off", "شافل خاموش"),
     STANDARD("Standard Random", "شافل تصادفی"),

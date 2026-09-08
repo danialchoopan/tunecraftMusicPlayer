@@ -49,13 +49,6 @@ fun AudioTrimmerDialog(
     val startMs = rangeValues.start.toLong().coerceIn(0L, totalDurationMs)
     val endMs = rangeValues.endInclusive.toLong().coerceIn(startMs + 500L, totalDurationMs)
 
-    fun formatMs(ms: Long): String {
-        val totalSec = ms / 1000
-        val min = totalSec / 60
-        val sec = totalSec % 60
-        return String.format("%02d:%02d", min, sec)
-    }
-
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             shape = RoundedCornerShape(24.dp),
@@ -108,7 +101,7 @@ fun AudioTrimmerDialog(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
-                            text = formatMs(startMs),
+                            text = formatTime(startMs),
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary
@@ -122,7 +115,7 @@ fun AudioTrimmerDialog(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
-                            text = formatMs(endMs),
+                            text = formatTime(endMs),
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary
@@ -145,7 +138,7 @@ fun AudioTrimmerDialog(
                 )
 
                 Text(
-                    text = "${if (isPersian) "مدت زمان انتخاب شده:" else "Selected duration:"} ${formatMs((endMs - startMs).coerceAtLeast(0L))}",
+                    text = "${if (isPersian) "مدت زمان انتخاب شده:" else "Selected duration:"} ${formatTime((endMs - startMs).coerceAtLeast(0L))}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.primary
                 )
@@ -208,7 +201,7 @@ fun AudioTrimmerDialog(
                                         onFailure = { err ->
                                             Toast.makeText(
                                                 context,
-                                                if (isPersian) "خطا در برش فایل: ${err.localizedMessage}" else "Error trimming audio: ${err.localizedMessage}",
+                                                if (isPersian) "خطا در برش فایل: ${err.message ?: "Unknown error"}" else "Error trimming audio: ${err.message ?: "Unknown error"}",
                                                 Toast.LENGTH_LONG
                                             ).show()
                                         }

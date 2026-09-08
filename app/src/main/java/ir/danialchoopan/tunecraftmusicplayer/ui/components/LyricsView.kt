@@ -13,7 +13,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import kotlinx.coroutines.launch
 
 data class LrcLine(val timestampMs: Long, val text: String)
 
@@ -38,8 +37,6 @@ fun parseLrc(lrcText: String?): List<LrcLine> {
     return lines.sortedBy { it.timestampMs }
 }
 
-private fun String?.isNull_or_empty(): Boolean = this == null || this.trim().isEmpty()
-
 @Composable
 fun LyricsView(
     lrcContent: String?,
@@ -49,7 +46,6 @@ fun LyricsView(
 ) {
     val lrcLines = remember(lrcContent) { parseLrc(lrcContent) }
     val listState = rememberLazyListState()
-    val coroutineScope = rememberCoroutineScope()
 
     val currentLineIndex = remember(currentPositionMs, lrcLines) {
         if (lrcLines.isEmpty()) -1
@@ -61,9 +57,7 @@ fun LyricsView(
 
     LaunchedEffect(currentLineIndex) {
         if (currentLineIndex in lrcLines.indices) {
-            coroutineScope.launch {
-                listState.animateScrollToItem((currentLineIndex - 2).coerceAtLeast(0))
-            }
+            listState.animateScrollToItem((currentLineIndex - 2).coerceAtLeast(0))
         }
     }
 

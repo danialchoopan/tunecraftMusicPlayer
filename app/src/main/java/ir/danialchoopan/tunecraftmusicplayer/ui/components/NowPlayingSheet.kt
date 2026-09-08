@@ -30,6 +30,12 @@ import ir.danialchoopan.tunecraftmusicplayer.service.AudioFxManager
 import ir.danialchoopan.tunecraftmusicplayer.service.PlayerState
 import kotlinx.coroutines.launch
 
+/*
+ * formatTime — shared utility used by NowPlayingSheet, MiniPlayer, CarModeScreen, and HomeScreen.
+ *
+ * Converts milliseconds to "M:SS" format (e.g. 245000 → "4:05").
+ * Handles durations up to 599:59 without overflow.
+ */
 fun formatTime(ms: Long): String {
     val totalSeconds = (ms / 1000).toInt()
     val minutes = totalSeconds / 60
@@ -37,6 +43,16 @@ fun formatTime(ms: Long): String {
     return String.format("%d:%02d", minutes, seconds)
 }
 
+/*
+ * NowPlayingSheet — Full-screen modal bottom sheet for the currently playing song.
+ *
+ * Three tabs: Player (playback controls + artwork + swipe gestures),
+ * Lyrics (LRC-synced text), and Equalizer (DSP control panel).
+ *
+ * Communication with the service layer happens exclusively through callback
+ * lambdas and the playerState parameter — no direct service access except
+ * for the speed dialog (historical coupling, should be refactored to a callback).
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NowPlayingSheet(
@@ -379,7 +395,7 @@ fun NowPlayingSheet(
                         Text(if (isPersian) "نشانه‌گذاری" else "Bookmark")
                     }
 
-                    TextButton(onClick = { activeTab = 3 }) {
+                    TextButton(onClick = { activeTab = 2 }) {
                         Icon(imageVector = Icons.Default.GraphicEq, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(if (isPersian) "اکولایزر" else "EQ")

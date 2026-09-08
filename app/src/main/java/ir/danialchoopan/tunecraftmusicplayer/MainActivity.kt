@@ -13,15 +13,16 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Density
@@ -29,7 +30,6 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -38,6 +38,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import ir.danialchoopan.tunecraftmusicplayer.data.local.entity.SongEntity
+import ir.danialchoopan.tunecraftmusicplayer.data.repository.MusicRepository
 import ir.danialchoopan.tunecraftmusicplayer.service.PlayerState
 import ir.danialchoopan.tunecraftmusicplayer.service.TuneCraftMediaService
 import ir.danialchoopan.tunecraftmusicplayer.ui.components.MiniPlayer
@@ -48,7 +49,11 @@ import ir.danialchoopan.tunecraftmusicplayer.ui.components.AudioTrimmerDialog
 import ir.danialchoopan.tunecraftmusicplayer.ui.navigation.Screen
 import ir.danialchoopan.tunecraftmusicplayer.ui.screens.*
 import ir.danialchoopan.tunecraftmusicplayer.ui.theme.TuneCraftTheme
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.text.SimpleDateFormat
+import java.util.*
 
 class MainActivity : ComponentActivity() {
 
@@ -131,6 +136,32 @@ class MainActivity : ComponentActivity() {
                         if (isPersian) "اجازه دسترسی به فایل‌ها داده نشد" else "Storage permission denied",
                         Toast.LENGTH_LONG
                     ).show()
+                }
+            }
+
+            val importBackupLauncher = rememberLauncherForActivityResult(
+                ActivityResultContracts.StartActivityForResult()
+            ) { result ->
+                if (result.resultCode == android.app.Activity.RESULT_OK) {
+                    result.data?.data?.let { uri ->
+                        lifecycleScope.launch(Dispatchers.IO) {
+                            try {
+                                val json = this@MainActivity.contentResolver.openInputStream(uri)?.bufferedReader()?.readText() ?: ""
+                                val success = repository.importLibraryBackupJson(json)
+                                withContext(Dispatchers.Main) {
+                                    Toast.makeText(
+                                        this@MainActivity,
+                                        if (success) "Backup restored successfully" else "Failed to restore backup",
+                                        Toast.LENGTH_LONG
+                                    ).show()
+                                }
+                            } catch (e: Exception) {
+                                withContext(Dispatchers.Main) {
+                                    Toast.makeText(this@MainActivity, "Error: ${e.message}", Toast.LENGTH_LONG).show()
+                                }
+                            }
+                        }
+                    }
                 }
             }
 
@@ -413,7 +444,7 @@ class MainActivity : ComponentActivity() {
                                                 )
                                             }
 
-                                            // Core Floating Bottom Navigation Bar for Portrait Mode
+                                            // Modern floating bottom navigation bar for portrait mode
                                             if (!isLandscape) {
                                                 Surface(
                                                     modifier = Modifier
@@ -422,23 +453,36 @@ class MainActivity : ComponentActivity() {
                                                     shape = RoundedCornerShape(28.dp),
                                                     color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.95f),
                                                     tonalElevation = 8.dp,
-                                                    shadowElevation = 10.dp
+                                                    shadowElevation = 12.dp
                                                 ) {
                                                     Row(
                                                         modifier = Modifier
                                                             .fillMaxWidth()
-                                                            .padding(horizontal = 6.dp, vertical = 6.dp),
+                                                            .padding(horizontal = 8.dp, vertical = 4.dp),
                                                         horizontalArrangement = Arrangement.SpaceEvenly,
                                                         verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
                                                     ) {
+                                                        data class NavItem(val screen: Screen, val icon: androidx.compose.ui.graphics.vector.ImageVector)
                                                         val bottomNavItems = listOf(
-                                                            Screen.Home to Icons.Default.Home,
-                                                            Screen.Library to Icons.Default.LibraryMusic,
-                                                            Screen.Playlists to Icons.Default.QueueMusic
+                                                            NavItem(Screen.Home, Icons.Default.Home),
+                                                            NavItem(Screen.Library, Icons.Default.LibraryMusic),
+                                                            NavItem(Screen.Playlists, Icons.Default.QueueMusic)
                                                         )
 
-                                                        bottomNavItems.forEachIndexed { index, (screen, icon) ->
+                                                        bottomNavItems.forEachIndexed { index, item ->
                                                             val isSelected = currentRoute == Screen.Home.route && pagerState.currentPage == index
+
+                                                            // Animate colors smoothly on selection change
+                                                            val bgColor by animateColorAsState(
+                                                                targetValue = if (isSelected) MaterialTheme.colorScheme.primaryContainer else androidx.compose.ui.graphics.Color.Transparent,
+                                                                animationSpec = spring(dampingRatio = 0.7f, stiffness = 300f),
+                                                                label = "navBg"
+                                                            )
+                                                            val iconColor by animateColorAsState(
+                                                                targetValue = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                                                                animationSpec = spring(dampingRatio = 0.7f, stiffness = 300f),
+                                                                label = "navIcon"
+                                                            )
 
                                                             Surface(
                                                                 onClick = {
@@ -451,31 +495,32 @@ class MainActivity : ComponentActivity() {
                                                                             restoreState = true
                                                                         }
                                                                     }
-                                                                    coroutineScope.launch {
-                                                                        pagerState.animateScrollToPage(index)
-                                                                    }
+                                                                    coroutineScope.launch { pagerState.animateScrollToPage(index) }
                                                                 },
-                                                                shape = RoundedCornerShape(20.dp),
-                                                                color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else androidx.compose.ui.graphics.Color.Transparent,
+                                                                shape = RoundedCornerShape(22.dp),
+                                                                color = bgColor,
                                                                 modifier = Modifier.padding(horizontal = 2.dp)
                                                             ) {
                                                                 Row(
-                                                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                                                                    modifier = Modifier.padding(
+                                                                        horizontal = if (isSelected) 20.dp else 16.dp,
+                                                                        vertical = 12.dp
+                                                                    ),
                                                                     verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
                                                                     horizontalArrangement = Arrangement.Center
                                                                 ) {
                                                                     Icon(
-                                                                        imageVector = icon,
-                                                                        contentDescription = screen.titleEn,
-                                                                        tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                                                        imageVector = item.icon,
+                                                                        contentDescription = item.screen.titleEn,
+                                                                        tint = iconColor,
                                                                         modifier = Modifier.size(22.dp)
                                                                     )
                                                                     if (isSelected) {
                                                                         Spacer(modifier = Modifier.width(8.dp))
                                                                         Text(
-                                                                            text = if (isPersian) screen.titleFa else screen.titleEn,
+                                                                            text = if (isPersian) item.screen.titleFa else item.screen.titleEn,
                                                                             style = MaterialTheme.typography.labelMedium,
-                                                                            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                                                                            fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
                                                                             color = MaterialTheme.colorScheme.onPrimaryContainer
                                                                         )
                                                                     }
@@ -620,13 +665,34 @@ class MainActivity : ComponentActivity() {
                                         preferencesRepository = preferences,
                                         isPersian = isPersian,
                                         onExportBackup = {
-                                            lifecycleScope.launch {
+                                            lifecycleScope.launch(Dispatchers.IO) {
                                                 val json = repository.exportLibraryBackupJson()
-                                                Toast.makeText(this@MainActivity, "Library Backup Exported!", Toast.LENGTH_LONG).show()
+                                                val fileName = "TuneCraft_Backup_${SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())}.json"
+                                                val file = java.io.File(this@MainActivity.getExternalFilesDir(null), fileName)
+                                                file.writeText(json)
+                                                withContext(Dispatchers.Main) {
+                                                    Toast.makeText(
+                                                        this@MainActivity,
+                                                        "Backup saved to: $fileName",
+                                                        Toast.LENGTH_LONG
+                                                    ).show()
+                                                }
                                             }
                                         },
                                         onImportBackup = {
-                                            Toast.makeText(this@MainActivity, "Select JSON file to import", Toast.LENGTH_SHORT).show()
+                                            val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+                                                addCategory(Intent.CATEGORY_OPENABLE)
+                                                type = "application/json"
+                                            }
+                                            try {
+                                                importBackupLauncher.launch(intent)
+                                            } catch (e: Exception) {
+                                                Toast.makeText(
+                                                    this@MainActivity,
+                                                    "File picker not available",
+                                                    Toast.LENGTH_SHORT
+                                                ).show()
+                                            }
                                         }
                                     )
                                 }

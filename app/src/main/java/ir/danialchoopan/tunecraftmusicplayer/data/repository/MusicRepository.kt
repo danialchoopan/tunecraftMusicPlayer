@@ -19,6 +19,24 @@ import org.json.JSONObject
 import java.io.File
 import kotlin.math.abs
 
+/*
+ * MusicRepository — single source of truth for local media data.
+ *
+ * Responsibilities:
+ * 1. MediaStore scanning: query all audio files, upsert into Room, purge stale entries.
+ * 2. CRUD: songs, playlists, bookmarks, history, EQ presets.
+ * 3. External URI resolution: handle incoming audio intents (file managers, share sheets).
+ * 4. JSON backup/restore: export/import library metadata (favorites, play counts, ratings).
+ *
+ * Thread safety: All MediaStore queries and DB writes execute on Dispatchers.IO.
+ * The _isScanning StateFlow allows the UI to show a loading indicator.
+ *
+ * Scan atomicity: insertSongs() runs before deleteSongsNotIn() so that a scan
+ * failure mid-way does not wipe existing user data. However, if the scan crashes
+ * after delete but before insert, data loss can still occur. A @Transaction
+ * wrapping both operations would be ideal here.
+ */
+
 /**
  * Central Repository for Media Data & State Management.
  *
@@ -271,7 +289,9 @@ class MusicRepository(
             }
         }
 
-        val externalId = abs(uri.toString().hashCode().toLong())
+        val externalId = abs(uri.toString().hashCode().toLong()).let {
+            if (it == Long.MIN_VALUE) 0L else it
+        } + 1000000000000L
         val song = SongEntity(
             id = externalId,
             title = title,

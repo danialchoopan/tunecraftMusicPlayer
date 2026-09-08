@@ -4,6 +4,19 @@ import androidx.room.*
 import ir.danialchoopan.tunecraftmusicplayer.data.local.entity.*
 import kotlinx.coroutines.flow.Flow
 
+/*
+ * Room DAO interfaces for all 6 entities.
+ *
+ * Convention:
+ * - Flow return types → reactive UI observation via collectAsState
+ * - suspend functions → one-shot DB operations from ViewModel/repository coroutines
+ * - *Sync() suffix → non-reactive fetch returning a plain list (used for export, backup, scan)
+ *
+ * PlaylistDao.getSongsForPlaylist() uses an explicit INNER JOIN query
+ * instead of @Relation to avoid the N+1 query problem and keep control
+ * of the ordering via playlist_songs.orderIndex.
+ */
+
 @Dao
 interface SongDao {
     @Query("SELECT * FROM songs ORDER BY title ASC")

@@ -8,23 +8,35 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.SkipNext
+import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import ir.danialchoopan.tunecraftmusicplayer.R
 import ir.danialchoopan.tunecraftmusicplayer.service.PlayerState
 
-import androidx.compose.ui.platform.LocalContext
-import coil.request.ImageRequest
-
+/*
+ * MiniPlayer - Compact bottom bar showing current track with playback controls.
+ *
+ * Displays album art, song title, artist, a thin progress line,
+ * and play/pause + next buttons. The entire card is wrapped in
+ * SwipeableTrackContainer for left/right swipe-to-change-track gestures.
+ *
+ * Visual notes:
+ * - Uses a surface container background for the glass-morphism card effect
+ * - Progress indicator uses M3's LinearProgressIndicator with lambda syntax
+ * - Album art is 48dp with 8dp rounded corners
+ */
 @Composable
 fun MiniPlayer(
     playerState: PlayerState,
@@ -57,33 +69,34 @@ fun MiniPlayer(
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 4.dp)
-                .clip(RoundedCornerShape(16.dp))
+                .padding(horizontal = 12.dp, vertical = 6.dp)
+                .clip(RoundedCornerShape(20.dp))
                 .clickable { onClick() },
-            color = MaterialTheme.colorScheme.surfaceVariant,
-            tonalElevation = 6.dp
+            color = MaterialTheme.colorScheme.surfaceContainer,
+            tonalElevation = 4.dp,
+            shadowElevation = 8.dp
         ) {
             Column {
-                // Progress Bar at top of mini player
+                // Thin animated progress bar at the very top of the card
                 val progress = if (playerState.durationMs > 0) {
-                    (playerState.currentPositionMs.toFloat() / playerState.durationMs.toFloat()).coerceIn(0f, 1f)
+                    playerState.currentPositionMs.toFloat() / playerState.durationMs.toFloat()
                 } else 0f
-
                 LinearProgressIndicator(
                     progress = { progress },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(3.dp),
                     color = MaterialTheme.colorScheme.primary,
-                    trackColor = MaterialTheme.colorScheme.surfaceVariant
+                    trackColor = MaterialTheme.colorScheme.surfaceVariant,
                 )
 
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(8.dp),
+                        .padding(start = 12.dp, end = 4.dp, top = 8.dp, bottom = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    // Album art thumbnail
                     AsyncImage(
                         model = ImageRequest.Builder(context)
                             .data(if (!currentSong.albumArtUri.isNullOrEmpty()) currentSong.albumArtUri else currentSong.path)
@@ -95,35 +108,55 @@ fun MiniPlayer(
                         contentScale = ContentScale.Crop,
                         modifier = Modifier
                             .size(48.dp)
-                            .clip(RoundedCornerShape(8.dp))
+                            .clip(RoundedCornerShape(12.dp))
                     )
 
                     Spacer(modifier = Modifier.width(12.dp))
 
+                    // Song title + artist text (truncated to one line each)
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = currentSong.title,
-                            style = MaterialTheme.typography.titleMedium,
+                            style = MaterialTheme.typography.titleSmall,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
                             text = currentSong.artist,
-                            style = MaterialTheme.typography.bodyMedium,
+                            style = MaterialTheme.typography.bodySmall,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
 
-                    IconButton(onClick = onPlayPause) {
+                    // Previous track button (smaller, secondary)
+                    IconButton(onClick = onPrevious) {
                         Icon(
-                            imageVector = if (playerState.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                            contentDescription = "Play/Pause"
+                            imageVector = Icons.Default.SkipPrevious,
+                            contentDescription = "Previous",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
 
+                    // Play/Pause — uses primary tint to draw attention
+                    FilledIconButton(
+                        onClick = onPlayPause,
+                        modifier = Modifier.size(40.dp),
+                        colors = IconButtonDefaults.filledIconButtonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary
+                        )
+                    ) {
+                        Icon(
+                            imageVector = if (playerState.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                            contentDescription = "Play/Pause",
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+
+                    // Next track button
                     IconButton(onClick = onNext) {
                         Icon(
                             imageVector = Icons.Default.SkipNext,

